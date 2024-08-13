@@ -1,5 +1,5 @@
 import re, os, shutil, traceback
-import instaloader  # https://instaloader.github.io/as-module.html
+import instaloader  # https://instaloader.github.io/as-module.html (use instaloader -l jhaveriishaan94 to generate new session file)
 from loguru import logger
 
 from . import Archiver
@@ -14,9 +14,9 @@ class InstagramArchiver(Archiver):
 
     # NB: post regex should be tested before profile
     # https://regex101.com/r/MGPquX/1
-    post_pattern = re.compile(r"(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am|instagr.com)\/(?:p|reel)\/(\w+)")
+    post_pattern = re.compile(r"(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am|instagr.com)\/(?:p|reel)\/([^/]+\w+)")
     # https://regex101.com/r/6Wbsxa/1
-    profile_pattern = re.compile(r"(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am|instagr.com)\/(\w+)")
+    profile_pattern = re.compile(r"(?:(?:http|https):\/\/)?(?:www.)?(?:instagram.com|instagr.am|instagr.com)\/([^/]+\w+)")
     # TODO: links to stories
 
     def __init__(self, config: dict) -> None:
@@ -27,7 +27,7 @@ class InstagramArchiver(Archiver):
         self.assert_valid_string("download_folder")
         self.assert_valid_string("session_file")
         self.insta = instaloader.Instaloader(
-            download_geotags=True, download_comments=True, compress_json=False, dirname_pattern=self.download_folder, filename_pattern="{date_utc}_UTC_{target}__{typename}"
+            download_geotags=True, download_comments=False, compress_json=False, dirname_pattern=self.download_folder, filename_pattern="{date_utc}_UTC_{target}__{typename}"
         )
         try:
             self.insta.load_session_from_file(self.username, self.session_file)
@@ -50,6 +50,10 @@ class InstagramArchiver(Archiver):
             #TODO: fine-grain
             # "download_stories": {"default": True, "help": "if the link is to a user profile: whether to get stories information"},
         }
+    
+    def cleanup(self) -> None:
+        logger.info(f"CLEANUP {self.name}.")
+        shutil.rmtree(self.download_folder, ignore_errors=True)
 
     def download(self, item: Metadata) -> Metadata:
         url = item.get_url()
@@ -72,8 +76,8 @@ class InstagramArchiver(Archiver):
                 result = self.download_profile(url, profile_matches[0])
         except Exception as e:
             logger.error(f"Failed to download with instagram archiver due to: {e}, make sure your account credentials are valid.")
-        finally:
-            shutil.rmtree(self.download_folder, ignore_errors=True)
+        # finally:
+            # shutil.rmtree(self.download_folder, ignore_errors=True)
         return result
 
     def download_post(self, url: str, post_id: str) -> Metadata:
@@ -125,6 +129,12 @@ class InstagramArchiver(Archiver):
     def process_downloads(self, url, title, content, date):
         result = Metadata()
         result.set_title(title).set_content(str(content)).set_timestamp(date)
+
+        text = ""
+        for node in content["edge_media_to_caption"]["edges"]:
+            text += node["node"]["text"] + "\n\n"
+        
+        result.set("edited_text", text[:-2])
 
         try:
             all_media = []

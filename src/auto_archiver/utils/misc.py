@@ -3,6 +3,7 @@ import os, json, requests
 import uuid
 from datetime import datetime
 from loguru import logger
+from urllib.parse import urlparse
 
 
 def mkdir_if_not_exists(folder):

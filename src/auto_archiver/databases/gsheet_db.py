@@ -1,5 +1,5 @@
 from typing import Union, Tuple
-import datetime
+from datetime import datetime, timedelta, timezone
 from urllib.parse import quote
 
 from loguru import logger
@@ -8,6 +8,11 @@ from . import Database
 from ..core import Metadata, Media, ArchivingContext
 from ..utils import GWorksheet
 
+import os
+
+from google.cloud import translate_v2 as translate
+
+from pprint import pprint
 
 class GsheetsDb(Database):
     """
@@ -19,10 +24,13 @@ class GsheetsDb(Database):
     def __init__(self, config: dict) -> None:
         # without this STEP.__init__ is not called
         super().__init__(config)
+        self.translate_client = translate.Client.from_service_account_json(self.service_account)
 
     @staticmethod
     def configs() -> dict:
-        return {}
+        return {
+            "service_account": {"default": "secrets/service_account.json", "help": "service account JSON file path"},
+        }
 
     def started(self, item: Metadata) -> None:
         logger.warning(f"STARTED {item}")
@@ -50,46 +58,111 @@ class GsheetsDb(Database):
         cell_updates = []
         row_values = gw.get_row(row)
 
-        def batch_if_valid(col, val, final_value=None):
+        def batch_if_valid(offset_row, col, val, final_value=None):
             final_value = final_value or val
             try:
                 if val and gw.col_exists(col) and gw.get_cell(row_values, col) == '':
-                    cell_updates.append((row, col, final_value))
+                    if type(final_value) == str and len(final_value) > 5000:
+                        final_value = f"""{final_value[:4800]}..."""
+                    cell_updates.append((offset_row, col, final_value))
             except Exception as e:
                 logger.error(f"Unable to batch {col}={final_value} due to {e}")
+
         status_message = item.status
         if cached:
             status_message = f"[cached] {status_message}"
-        cell_updates.append((row, 'status', status_message))
 
         media: Media = item.get_final_media()
         if hasattr(media, "urls"):
-            batch_if_valid('archive', "\n".join(media.urls))
-        batch_if_valid('date', True, datetime.datetime.utcnow().replace(tzinfo=datetime.timezone.utc).isoformat())
-        batch_if_valid('title', item.get_title())
-        batch_if_valid('text', item.get("content", ""))
-        batch_if_valid('timestamp', item.get_timestamp())
-        if media: batch_if_valid('hash', media.get("hash", "not-calculated"))
+            for i, media_url in enumerate(media.urls):
+                batch_if_valid(row+i, 'archive', media_url)
+
+        batch_if_valid(row, 'date', True, datetime.utcnow().replace(tzinfo=timezone.utc).isoformat())
+        
+        batch_if_valid(row, 'title', item.get_title())
+        
+        title_translated = self.translate_client.translate(item.get("title", ""), target_language='en')
+        if title_translated["detectedSourceLanguage"] != 'en':
+            batch_if_valid(row, 'title_translated', 
+                f"""({title_translated["detectedSourceLanguage"]}) {title_translated["translatedText"]}""")
+
+        edited_text = None
+        if item.get("edited_text", None) is None:
+            edited_text = item.get("content", "")
+        else:
+            edited_text = item.get("edited_text", "")
+
+        batch_if_valid(row, 'text', edited_text)
+        text_translated = self.translate_client.translate(edited_text, target_language='en')
+        if text_translated["detectedSourceLanguage"] != 'en':
+            batch_if_valid(row, 'text_translated', 
+                f"""({text_translated["detectedSourceLanguage"]}) {text_translated["translatedText"]}""")
+
+        batch_if_valid(row, 'timestamp', item.get_timestamp())
+        
+        timestamp = item.get_timestamp()
+        if timestamp is not None:
+            est = timezone(timedelta(hours=-5))
+            date_utc = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S%z')
+            date_est = date_utc.astimezone(est)
+
+            batch_if_valid(row, 'timestamp_est', date_est.strftime('%Y-%m-%d %I:%M:%S %p'))
 
         # merge all pdq hashes into a single string, if present
         pdq_hashes = []
-        all_media = item.get_all_media()
-        for m in all_media:
+        
+        downloaded_filenames = []
+        archived_filenames = []
+
+        folder = None
+
+        all_media = [m for m in item.get_all_media() if (m.get("id", "") != "_final_media" and "thumbnail" not in m.get("id", "") and "screenshot" not in m.get("id", ""))]
+        for i, m in enumerate(all_media):
+            m: Media
             if pdq := m.get("pdq_hash"):
                 pdq_hashes.append(pdq)
-        if len(pdq_hashes):
-            batch_if_valid('pdq_hash', ",".join(pdq_hashes))
+            
+        
+            downloaded_filename = os.path.basename(m.filename)
+            archived_filename = m.urls[0]
+
+            batch_if_valid(row+i, 'downloaded_filenames', downloaded_filename)
+            batch_if_valid(row+i, 'archived_filenames', archived_filename)
+
+            # TODO: Make it so that if some fail but others succeed this is still accurate
+            cell_updates.append((row+i, 'status', f"""{i+1}/{len(all_media)}: {status_message}"""))
+
+            batch_if_valid(row+i, 'hash', m.get("hash", "not-calculated"))
+
+            # if hasattr(m, "thumbnails"): TODO: For some reason hasattr doesn't work here
+            if m.get("thumbnails") is not None and m.get("thumbnails")[0] is not None:
+                batch_if_valid(row+i, 'thumbnail', f'=IMAGE("{m.get("thumbnails")[0].urls[0]}")')
+            else:
+                batch_if_valid(row+i, 'thumbnail', f'=IMAGE("{m.urls[0]}")')
+
+            # downloaded_filenames.append(downloaded_filename)
+            # archived_filenames.append(archived_filename)
+
+        # if m.get("id", "") == "_final_media":
+        #     folder = m.urls[0].replace(m.key.replace("/", "_"), "")
+
+        # if len(pdq_hashes):
+        #     batch_if_valid('pdq_hash', "\n".join(pdq_hashes))
+
+        # if len(downloaded_filenames):
+        #     batch_if_valid('downloaded_filenames', "\n".join(downloaded_filenames))
+
+        # if len(archived_filenames):
+        #     batch_if_valid('archived_filenames', "\n".join(archived_filenames))
+
+        # batch_if_valid('folder', folder)
 
         if (screenshot := item.get_media_by_id("screenshot")) and hasattr(screenshot, "urls"):
-            batch_if_valid('screenshot', "\n".join(screenshot.urls))
-
-        if (thumbnail := item.get_first_image("thumbnail")):
-            if hasattr(thumbnail, "urls"):
-                batch_if_valid('thumbnail', f'=IMAGE("{thumbnail.urls[0]}")')
+            batch_if_valid(row, 'screenshot', "\n".join(screenshot.urls))
 
         if (browsertrix := item.get_media_by_id("browsertrix")):
-            batch_if_valid('wacz', "\n".join(browsertrix.urls))
-            batch_if_valid('replaywebpage', "\n".join([f'https://replayweb.page/?source={quote(wacz)}#view=pages&url={quote(item.get_url())}' for wacz in browsertrix.urls]))
+            batch_if_valid(row, 'wacz', "\n".join(browsertrix.urls))
+            batch_if_valid(row, 'replaywebpage', "\n".join([f'https://replayweb.page/?source={quote(wacz)}#view=pages&url={quote(item.get_url())}' for wacz in browsertrix.urls]))
 
         gw.batch_set_cell(cell_updates)
 

@@ -44,7 +44,15 @@ class VkArchiver(Archiver):
             if not result.get_timestamp():
                 result.set_timestamp(scrape["datetime"])
 
-        result.set_content(dump_payload(vk_scrapes))
+        content = dump_payload(vk_scrapes)
+
+        result.set_content(content)
+
+        text = ""
+        for scrape in vk_scrapes:
+            text += scrape["text"] + "\n\n"
+            
+        result.set("edited_text", text[:-2])
 
         filenames = self.vks.download_media(vk_scrapes, ArchivingContext.get_tmp_dir())
         for filename in filenames:

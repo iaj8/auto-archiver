@@ -126,7 +126,7 @@ class Metadata:
             return
 
     def add_media(self, media: Media, id: str = None) -> Metadata:
-        # adds a new media, optionally including an id
+        # adds a new media, optionally including an id and a filename to use when uploading to GCS
         if media is None: return
         if id is not None:
             assert not len([1 for m in self.media if m.get("id") == id]), f"cannot add 2 pieces of media with the same id {id}"
@@ -159,6 +159,12 @@ class Metadata:
             media_hashes.add(h)
             new_media.append(m)
         self.media = new_media
+
+    def get_media_screenshot_thumbnail(self, default=None) -> Media:
+        for m in [inner for m in self.media for inner in m.all_inner_media(True)]:
+            if "thumbnail" in m.get("id", ""): return m
+        return default
+
 
     def get_first_image(self, default=None) -> Media:
         for m in self.media:

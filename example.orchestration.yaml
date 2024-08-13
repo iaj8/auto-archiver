@@ -2,45 +2,41 @@ steps:
   # only 1 feeder allowed
   feeder: gsheet_feeder # defaults to cli_feeder
   archivers: # order matters, uncomment to activate
-    # - vk_archiver
-    # - telethon_archiver
-    # - telegram_archiver
-    # - twitter_archiver
-    # - twitter_api_archiver
+    - vk_archiver
+    - telethon_archiver
+    - telegram_archiver
+    - twitter_archiver
+    - twitter_api_archiver
     # - instagram_api_archiver
-    # - instagram_tbot_archiver
-    # - instagram_archiver
-    # - tiktok_archiver
+    - instagram_archiver
+    - instagram_tbot_archiver
+    - tiktok_archiver
     - youtubedl_archiver
     # - wayback_archiver_enricher
     # - wacz_archiver_enricher
   enrichers:
     - hash_enricher
-    # - meta_enricher
-    # - metadata_enricher
-    # - screenshot_enricher
-    # - pdq_hash_enricher
-    # - ssl_enricher
-    # - timestamping_enricher
-    # - whisper_enricher
-    # - thumbnail_enricher
+    - metadata_enricher
+    - screenshot_enricher
+    - thumbnail_enricher
     # - wayback_archiver_enricher
     # - wacz_archiver_enricher
     # - pdq_hash_enricher # if you want to calculate hashes for thumbnails, include this after thumbnail_enricher
-  formatter: html_formatter # defaults to mute_formatter
+  formatter: html_formatter # choose from mute_formatter, html_formatter, gsheet_formatter
   storages:
-    - local_storage
+    # - local_storage
     # - s3_storage
     # - gdrive_storage
+    - gcs_storage
   databases:
     - console_db
     # - csv_db
-    # - gsheet_db
+    - gsheet_db
     # - mongo_db
 
 configurations:
   gsheet_feeder:
-    sheet: "your sheet name"
+    sheet: "AutoArchiver Test Sheet for VI"
     header: 1
     service_account: "secrets/service_account.json"
     # allow_worksheets: "only parse this worksheet"
@@ -48,27 +44,34 @@ configurations:
     use_sheet_names_in_stored_paths: false
     columns:
       url: link
-      status: archive status
-      folder: destination folder
-      archive: archive location
+      status: media number + archive status
+      # folder: destination folder
+      archive: additional information
+      archived_filenames: archived file location(s)
+      downloaded_filenames: original downloaded filename(s)
       date: archive date
-      thumbnail: thumbnail
+      thumbnail: media screenshot
       timestamp: upload timestamp
+      timestamp_est: upload timestamp est
       title: upload title
-      text: textual content
-      screenshot: screenshot
+      title_translated: upload title translated
+      text: text of post
+      text_translated: text of post translated
+      screenshot: post screenshot link
       hash: hash
-      pdq_hash: perceptual hashes
-      wacz: wacz
-      replaywebpage: replaywebpage
+      # pdq_hash: perceptual hashes
+      # wacz: wacz
+      # replaywebpage: replaywebpage
+
   instagram_tbot_archiver:
-    api_id: "TELEGRAM_BOT_API_ID"
-    api_hash: "TELEGRAM_BOT_API_HASH"
-    # session_file: "secrets/anon"
+    api_id: "24045990"
+    api_hash: "7b17a3eaa7742009e4815cefa5476604"
+    session_file: "secrets/instabot-2024-07-26693cd8cb"
+
   telethon_archiver:
-    api_id: "TELEGRAM_BOT_API_ID"
-    api_hash: "TELEGRAM_BOT_API_HASH"
-    # session_file: "secrets/anon"
+    api_id: "24045990"
+    api_hash: "7b17a3eaa7742009e4815cefa5476604"
+    session_file: "secrets/telethon-2024-07-26a2fed7f3"
     join_channels: false
     channel_invites: # if you want to archive from private channels
       - invite: https://t.me/+123456789
@@ -77,39 +80,52 @@ configurations:
         id: 0000000002
 
   twitter_api_archiver:
+    netscape_cookies: "secrets/netscape_cookies.txt"
     # either bearer_token only
-    bearer_token: "TWITTER_BEARER_TOKEN"
+    bearer_token: "AAAAAAAAAAAAAAAAAAAAAESRrAEAAAAAmC4S38zyRV6yPwH5JRfAfxx1ggc%3Dc2FAKDDo1rW4LD7erMjHw9J9Q3xt8ag36dGx69sUF6Tb8agi2F"
     # OR all of the below
     # consumer_key: ""
     # consumer_secret: ""
     # access_token: ""
     # access_secret: ""
+
+  twitter_archiver:
+    netscape_cookies: "secrets/netscape_cookies.txt"
+
   instagram_archiver:
-    username: "INSTAGRAM_USERNAME"
-    password: "INSTAGRAM_PASSWORD"
-    # session_file: "secrets/instaloader.session"
+    username: "jhaveriishaan94"
+    password: "Igordimov109"
+    session_file: "secrets/instaloader.session"
 
   vk_archiver:
-    username: "or phone number"
-    password: "vk pass"
+    username: "+13478803642"
+    password: "Igordimov109"
     session_file: "secrets/vk_config.v2.json"
+
+  youtubedl_archiver:
+    netscape_cookies: "secrets/netscape_cookies.txt"
 
   screenshot_enricher:
     width: 1280
-    height: 2300
+    height: 1280
+
   wayback_archiver_enricher:
     timeout: 10
     key: "wayback key"
     secret: "wayback secret"
+
   hash_enricher:
     algorithm: "SHA3-512" # can also be SHA-256
+
   wacz_archiver_enricher:
     profile: secrets/profile.tar.gz
+
   local_storage:
-    save_to: "./local_archive"
+    save_to: "/Users/ishaanjhaveri/Desktop/auto_archiver_test_local_archive"
     save_absolute: true
     filename_generator: static
     path_generator: flat
+
   s3_storage:
     bucket: your-bucket-name
     region: reg1
@@ -121,11 +137,23 @@ configurations:
     private: false
     # with 'random' you can generate a random UUID for the URL instead of a predictable path, useful to still have public but unlisted files, alternative is 'default' or not omitted from config
     key_path: random
+
+  gcs_storage:
+    bucket_name: vi_workflow
+    top_level_folder: vi_workflow_tests
+    service_account: "secrets/service_account.json"
+    scopes: ['https://www.googleapis.com/auth/cloud-platform']
+    cdn_url: "https://storage.googleapis.com/{bucket_name}/{key}"
+
   gdrive_storage:
     path_generator: url
-    filename_generator: random
-    root_folder_id: folder_id_from_url
+    filename_generator: static
+    root_folder_id: 1ekMiHv15Zg85lRNESD014dGWym-zAq-4
     oauth_token: secrets/gd-token.json # needs to be generated with scripts/create_update_gdrive_oauth_token.py
     service_account: "secrets/service_account.json"
+
   csv_db:
     csv_file: "./local_archive/db.csv"
+  
+  gsheet_db:
+    service_account: "secrets/service_account.json"

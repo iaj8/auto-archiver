@@ -32,7 +32,7 @@ class MetadataEnricher(Enricher):
         try:
             # Run ExifTool command to extract metadata from the file
             cmd = ['exiftool', filename]
-            result = subprocess.run(cmd, capture_output=True, text=True)
+            result = subprocess.run(cmd, capture_output=True, text=True, errors='ignore')
 
             # Process the output to extract individual metadata fields
             metadata = {}

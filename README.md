@@ -222,7 +222,7 @@ Inputs:
 
 Outputs:
 * **Archive status** *(required)*: Status of archive operation
-* **Archive location**: URL of archived post
+* **Additional Information**: URL of archived post
 * **Archive date**: Date archived
 * **Thumbnail**: Embeds a thumbnail for the post in the spreadsheet
 * **Timestamp**: Timestamp of original post
@@ -250,7 +250,7 @@ The links are downloaded and archived, and the spreadsheet is updated to the fol
 
 Note that the first row is skipped, as it is assumed to be a header row (`--gsheet_feeder.header=1` and you can change it if you use more rows above). Rows with an empty URL column, or a non-empty archive column are also skipped. All sheets in the document will be checked.
 
-The "archive location" link contains the path of the archived file, in local storage, S3, or in Google Drive.
+The "Additional Information" link contains the path of the archived file, in local storage, S3, or in Google Drive.
 
 ![The archive result for a link in the demo sheet.](docs/demo-archive.png)
 
