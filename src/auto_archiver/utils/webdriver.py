@@ -4,6 +4,8 @@ from selenium.common.exceptions import TimeoutException
 from selenium.webdriver.common.proxy import Proxy, ProxyType
 from loguru import logger
 from selenium.webdriver.common.by import By
+from selenium.webdriver.firefox.service import Service
+
 import time
 
 
@@ -20,8 +22,10 @@ class Webdriver:
         options.add_argument("--headless")
         options.add_argument(f'--proxy-server={self.http_proxy}')
         options.set_preference('network.protocol-handler.external.tg', False)
+        service = Service(executable_path='/usr/local/bin/geckodriver')
+
         try:
-            self.driver = webdriver.Firefox(options=options)
+            self.driver = webdriver.Firefox(service=service, options=options)
             self.driver.set_window_size(self.width, self.height)
             self.driver.set_page_load_timeout(self.timeout_seconds)
         except TimeoutException as e:

@@ -1,5 +1,7 @@
 from gspread import utils
-
+from gspread_formatting import set_row_height
+from gspread.exceptions import APIError
+from time import sleep
 
 class GWorksheet:
     """
@@ -10,24 +12,48 @@ class GWorksheet:
     """
     COLUMN_NAMES = {
         'url': 'link',
-        'status': 'archive status',
-        'folder': 'destination folder',
-        'archive': 'archive location',
+        'status': 'media number + archive status',
+        # 'folder': 'destination folder',
+        'archive': 'additional information',
+        'archived_filenames': 'archived file location(s)',
+        'downloaded_filenames': 'original downloaded filename(s)',
         'date': 'archive date',
-        'thumbnail': 'thumbnail',
+        'thumbnail': 'media screenshot',
         'timestamp': 'upload timestamp',
+        'timestamp_est': 'upload timestamp est',
         'title': 'upload title',
-        'screenshot': 'screenshot',
+        'title_translated': 'upload title translated',
+        'text': 'text of post',
+        'text_translated': 'text of post translated',
+        'screenshot': 'post screenshot link',
         'hash': 'hash',
-        'pdq_hash': 'perceptual hashes',
-        'wacz': 'wacz',
-        'replaywebpage': 'replaywebpage',
+        # 'pdq_hash': 'perceptual hashes',
+        # 'wacz': 'wacz',
+        # 'replaywebpage': 'replaywebpage'
     }
+
+    COLS_TO_MERGE_IF_EXTRA_MEDIA = [
+        'url',
+        'archive',
+        'date',
+        'timestamp',
+        'timestamp_est',
+        'title',
+        'title_translated',
+        'text',
+        'text_translated',
+        'screenshot'
+    ]
 
     def __init__(self, worksheet, columns=COLUMN_NAMES, header_row=1):
         self.wks = worksheet
         self.columns = columns
-        self.values = self.wks.get_values()
+        while True:
+            try:
+                self.values = self.wks.get_values()
+                break
+            except APIError:
+                sleep(60)
         if len(self.values) > 0:
             self.headers = [v.lower() for v in self.values[header_row - 1]]
         else:
@@ -65,7 +91,12 @@ class GWorksheet:
         col_index = self._col_index(col)
 
         if fresh:
-            return self.wks.cell(row, col_index + 1).value
+            while True:
+                try:
+                    return self.wks.cell(row, col_index + 1).value
+                except APIError:
+                    sleep(60)
+
         if type(row) == int:
             row = self.get_row(row)
 
@@ -88,12 +119,51 @@ class GWorksheet:
     def set_cell(self, row: int, col: str, val):
         # row is 1-based
         col_index = self._col_index(col) + 1
-        self.wks.update_cell(row, col_index, val)
+        while True:
+            try:
+                self.wks.update_cell(row, col_index, val)
+                break
+            except APIError:
+                sleep(60)
 
     def batch_set_cell(self, cell_updates):
         """
         receives a list of [(row:int, col:str, val)] and batch updates it, the parameters are the same as in the self.set_cell() method
         """
+        rows = set()
+        for row, _, _ in cell_updates:
+            while True:
+                try:
+                    set_row_height(self.wks, f"""{row}:{row}""", 200)
+                    break
+                except APIError:
+                    sleep(60)
+
+            rows.add(row)
+
+        # if 106 in rows:
+        #     rows = {106, 107, 108}
+        # If all the rows are not equal, merge certain cells
+        if len(rows) != 1:
+            rows = sorted(rows)
+            range_start = rows[0]
+            range_end = rows[-1]
+            for row in rows[:-1]:
+                while True:
+                    try:
+                        self.wks.insert_row([], index=row)
+                        break
+                    except APIError:
+                        sleep(60)
+
+            for col in self.COLS_TO_MERGE_IF_EXTRA_MEDIA:
+                while True:
+                    try:
+                        self.wks.merge_cells(range_start, self._col_index(col)+1, range_end, self._col_index(col)+1)
+                        break
+                    except APIError:
+                        sleep(60)
+
         cell_updates = [
             {
                 'range': self.to_a1(row, col),
@@ -101,7 +171,21 @@ class GWorksheet:
             }
             for row, col, val in cell_updates
         ]
-        self.wks.batch_update(cell_updates, value_input_option='USER_ENTERED')
+
+        while True:
+            try:
+                self.wks.batch_update(cell_updates, value_input_option='USER_ENTERED')
+                break
+            except APIError:
+                sleep(60)
+
+        if len(rows) != 1:
+            while True:
+                try:
+                    self.values = self.wks.get_values()
+                    break
+                except APIError:
+                    sleep(60)
 
     def to_a1(self, row: int, col: str):
         # row is 1-based

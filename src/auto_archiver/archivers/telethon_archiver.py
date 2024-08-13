@@ -166,6 +166,9 @@ class TelethonArchiver(Archiver):
             result.set_title(title).set_timestamp(post.date).set("api_data", post.to_dict())
             if post.message != title:
                 result.set_content(post.message)
+
+            result.set("edited_text", title)
+
         return result.success("telethon")
 
     def _get_media_posts_in_group(self, chat, original_post, max_amp=10):

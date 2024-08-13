@@ -41,6 +41,7 @@ class TwitterApiArchiver(TwitterArchiver, Archiver):
             "consumer_secret": {"default": None, "help": "twitter API consumer_secret"},
             "access_token": {"default": None, "help": "twitter API access_token"},
             "access_secret": {"default": None, "help": "twitter API access_secret"},
+            "netscape_cookies": {"default": None, "help": "optional YouTube and Twitter cookies to get past NSFW videos"}
         }
     
     @property  # getter .mimetype

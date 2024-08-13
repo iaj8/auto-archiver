@@ -15,6 +15,7 @@ class GsheetsFeeder(Gsheets, Feeder):
     def __init__(self, config: dict) -> None:
         # without this STEP.__init__ is not called
         super().__init__(config)
+        self.row_offset = 1
         self.gsheets_client = gspread.service_account(filename=self.service_account)
 
     @staticmethod
@@ -52,7 +53,12 @@ class GsheetsFeeder(Gsheets, Feeder):
                 logger.warning(f"SKIPPED worksheet '{wks.title}' due to missing required column(s) for {missing_cols}")
                 continue
 
-            for row in range(1 + self.header, gw.count_rows() + 1):
+            # for row in range(1 + self.header, gw.count_rows() + 1):
+            row = self.header
+            while True:
+                row += self.row_offset
+                if row > gw.count_rows(): break
+
                 url = gw.get_cell(row, 'url').strip()
                 if not len(url): continue
 

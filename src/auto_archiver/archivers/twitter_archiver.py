@@ -23,10 +23,14 @@ class TwitterArchiver(Archiver):
 
     def __init__(self, config: dict) -> None:
         super().__init__(config)
+        self.assert_valid_string("netscape_cookies")
 
     @staticmethod
     def configs() -> dict:
-        return {}
+        return {
+            "format": {"default": 'bv*[vcodec^=avc]+ba[ext=m4a]/b[ext=mp4]/b', "help": "The default format tells yt-dlp to download the best quality video you can in the avc (h264) codec and the best quality m4a audio you can and put it in an mp4 wrapper"},
+            "netscape_cookies": {"default": None, "help": "optional YouTube and Twitter cookies to get past NSFW videos"}
+        }
 
     def sanitize_url(self, url: str) -> str:
         # expand URL if t.co and clean tracker GET params
@@ -143,7 +147,12 @@ class TwitterArchiver(Archiver):
         return result.success("twitter-syndication")
 
     def download_yt_dlp(self, item: Metadata, url: str, tweet_id: str) -> Union[Metadata|bool]:
-        downloader = YoutubeDL()
+
+        ydl_options = {
+                        'cookiefile': self.netscape_cookies,
+                        'format': self.format
+                       }
+        downloader = YoutubeDL(ydl_options)
         tie = TwitterIE(downloader)
         tweet = tie._extract_status(tweet_id)
         result = Metadata()
@@ -151,6 +160,10 @@ class TwitterArchiver(Archiver):
             .set_title(tweet.get('full_text', ''))\
             .set_content(json.dumps(tweet, ensure_ascii=False))\
             .set_timestamp(datetime.strptime(tweet["created_at"], "%a %b %d %H:%M:%S %z %Y"))
+        
+        result.set("edited_text", tweet.get("full_text"))
+
+
         if not tweet.get("entities", {}).get("media"):
             logger.debug('No media found, archiving tweet text only')
             result.status = "twitter-ytdl"

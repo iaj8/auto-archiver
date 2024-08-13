@@ -17,11 +17,14 @@ class YoutubeDLArchiver(Archiver):
         self.end_means_success = bool(self.end_means_success)
         self.allow_playlist = bool(self.allow_playlist)
         self.max_downloads = self.max_downloads
+        self.assert_valid_string("netscape_cookies")
 
     @staticmethod
     def configs() -> dict:
         return {
+            "format": {"default": 'bv*[vcodec^=avc]+ba[ext=m4a]/b[ext=mp4]/b', "help": "The default format tells yt-dlp to download the best quality video you can in the avc (h264) codec and the best quality m4a audio you can and put it in an mp4 wrapper"},
             "facebook_cookie": {"default": None, "help": "optional facebook cookie to have more access to content, from browser, looks like 'cookie: datr= xxxx'"},
+            "netscape_cookies": {"default": None, "help": "optional YouTube and Twitter cookies to get past NSFW videos"},
             "subtitles": {"default": True, "help": "download subtitles if available"},
             "comments": {"default": False, "help": "download all comments if available, may lead to large metadata"},
             "livestreams": {"default": False, "help": "if set, will download live streams, otherwise will skip them; see --max-filesize for more control"},
@@ -39,7 +42,15 @@ class YoutubeDLArchiver(Archiver):
             logger.debug('Using Facebook cookie')
             yt_dlp.utils.std_headers['cookie'] = self.facebook_cookie
 
-        ydl_options = {'outtmpl': os.path.join(ArchivingContext.get_tmp_dir(), f'%(id)s.%(ext)s'), 'quiet': False, 'noplaylist': not self.allow_playlist , 'writesubtitles': self.subtitles, 'writeautomaticsub': self.subtitles, "live_from_start": self.live_from_start, "proxy": self.proxy, "max_downloads": self.max_downloads, "playlistend": self.max_downloads}
+        ydl_options = {
+                        'outtmpl': os.path.join(ArchivingContext.get_tmp_dir(), f'%(id)s.%(ext)s'), 
+                        'quiet': False, 'noplaylist': not self.allow_playlist , 
+                        'writesubtitles': self.subtitles, 'writeautomaticsub': self.subtitles, 
+                        "live_from_start": self.live_from_start, "proxy": self.proxy, 
+                        "max_downloads": self.max_downloads, "playlistend": self.max_downloads,
+                        'cookiefile': self.netscape_cookies,
+                        'format': self.format
+                       }
         ydl = yt_dlp.YoutubeDL(ydl_options) # allsubtitles and subtitleslangs not working as expected, so default lang is always "en"
 
         try:

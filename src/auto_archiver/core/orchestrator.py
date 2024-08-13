@@ -132,6 +132,9 @@ class ArchivingOrchestrator:
             except Exception as e:
                 logger.error(f"ERROR database {d.name}: {e}: {traceback.format_exc()}")
 
+        # set the row_offset to the number of links archived
+        all_media = [m for m in result.get_all_media() if (m.get("id", "") != "_final_media" and "thumbnail" not in m.get("id", "") and "screenshot" not in m.get("id", ""))]
+        self.feeder.row_offset = len(all_media)
         return result
 
     def assert_valid_url(self, url: str) -> bool:
