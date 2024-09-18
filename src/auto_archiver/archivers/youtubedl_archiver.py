@@ -27,11 +27,11 @@ class YoutubeDLArchiver(Archiver):
             "netscape_cookies": {"default": None, "help": "optional YouTube and Twitter cookies to get past NSFW videos"},
             "subtitles": {"default": True, "help": "download subtitles if available"},
             "comments": {"default": False, "help": "download all comments if available, may lead to large metadata"},
-            "livestreams": {"default": False, "help": "if set, will download live streams, otherwise will skip them; see --max-filesize for more control"},
+            "livestreams": {"default": True, "help": "if set, will download live streams, otherwise will skip them; see --max-filesize for more control"},
             "live_from_start": {"default": False, "help": "if set, will download live streams from their earliest available moment, otherwise starts now."},
             "proxy": {"default": "", "help": "http/socks (https seems to not work atm) proxy to use for the webdriver, eg https://proxy-user:password@proxy-ip:port"},
             "end_means_success": {"default": True, "help": "if True, any archived content will mean a 'success', if False this archiver will not return a 'success' stage; this is useful for cases when the yt-dlp will archive a video but ignore other types of content like images or text only pages that the subsequent archivers can retrieve."},
-            'allow_playlist': {"default": False, "help": "If True will also download playlists, set to False if the expectation is to download a single video."},
+            'allow_playlist': {"default": True, "help": "If True will also download playlists, set to False if the expectation is to download a single video."},
             "max_downloads": {"default": "inf", "help": "Use to limit the number of videos to download when a channel or long page is being extracted. 'inf' means no limit."},
         }
 
@@ -59,8 +59,31 @@ class YoutubeDLArchiver(Archiver):
             if info.get('is_live', False) and not self.livestreams:
                 logger.warning("Livestream detected, skipping due to 'livestreams' configuration setting")
                 return False
+            audio_only = True
+            for media_format in info['formats']:
+                audio_only &= media_format['resolution'] is not None and "audio only" in media_format['resolution']
+
+            if audio_only:
+                ydl_options["format"] = "ba"
+                ydl_options["audio_format"] = "mp3"
+                ydl_options["audio_quality"] = 0
+                ydl_options["extract_audio"] = True
+                ydl_options["postprocessors"] = [{
+                    "key": "FFmpegExtractAudio",
+                    "preferredcodec": "mp3",
+                    "preferredquality": "0"
+                }]
+
         except yt_dlp.utils.DownloadError as e:
+            # Try just bv+ba, without specifying format
             logger.debug(f'No video - Youtube normal control flow: {e}')
+            if "Requested format is not available" in e.msg and ydl_options["format"] != "bv+ba":
+                ydl_options["format"] = "bv+ba"
+                self.format = "bv+ba"
+                return self.download(item)
+            # Give up
+            else:
+                return False
             return False
         except Exception as e:
             logger.debug(f'ytdlp exception which is normal for example a facebook page with images only will cause a IndexError: list index out of range. Exception is: \n  {e}')
@@ -84,6 +107,8 @@ class YoutubeDLArchiver(Archiver):
         for entry in entries:
             try:
                 filename = ydl.prepare_filename(entry)
+                if "audio_format" in ydl_options and ydl_options["extract_audio"]:
+                    filename = os.path.splitext(filename)[0] + f""".{ydl_options["audio_format"]}"""
                 if not os.path.exists(filename):
                     filename = filename.split('.')[0] + '.mkv'
 

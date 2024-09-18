@@ -8,6 +8,7 @@ from . import Archiver
 from ..core import Metadata, Media, ArchivingContext
 from ..utils import random_str
 
+DEFAULT_SESSION_FILE = "secrets/anon-instabot"
 
 class InstagramTbotArchiver(Archiver):
     """
@@ -28,7 +29,7 @@ class InstagramTbotArchiver(Archiver):
         return {
             "api_id": {"default": None, "help": "telegram API_ID value, go to https://my.telegram.org/apps"},
             "api_hash": {"default": None, "help": "telegram API_HASH value, go to https://my.telegram.org/apps"},
-            "session_file": {"default": "secrets/anon-insta", "help": "optional, records the telegram login session for future usage, '.session' will be appended to the provided value."},
+            "session_file": {"default": DEFAULT_SESSION_FILE, "help": "optional, records the telegram login session for future usage, '.session' will be appended to the provided value."},
             "timeout": {"default": 45, "help": "timeout to fetch the instagram content in seconds."},
         }
 
@@ -55,7 +56,8 @@ class InstagramTbotArchiver(Archiver):
     def cleanup(self) -> None:
         logger.info(f"CLEANUP {self.name}.")
         session_file_name = self.session_file + ".session"
-        if os.path.exists(session_file_name):
+        if os.path.exists(session_file_name) and session_file_name != DEFAULT_SESSION_FILE:
+            print("remove", session_file_name)
             os.remove(session_file_name)
         
     def download(self, item: Metadata) -> Metadata:

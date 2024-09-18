@@ -12,7 +12,7 @@ from loguru import logger
 
 NO_DUPLICATES_FOLDER = "no-dups/"
 class GCSStorage(Storage):
-    name = "gcs_storage"
+    # name = "gcs_storage"
 
     def __init__(self, config: dict) -> None:
         super().__init__(config)
@@ -53,10 +53,21 @@ class GCSStorage(Storage):
             except Exception as e:
                 logger.warning(f"Unable to get mimetype for {media.key=}, error: {e}")
 
+        
+        _, ext = os.path.splitext(media.key)
+
         if "thumbnail" in media.get("id", ""):
-            filename = f"""{media.key[:media.key.rfind("/")]}_screenshots/{media.key[media.key.rfind("/")+1:]}"""
-        else:
-            filename = media.key.replace("/", "_")
+            # filename = f"""{media.key[:media.key.rfind("/")]}_screenshots/{media.key[media.key.rfind("/")+1:]}"""
+            filename = os.path.join("thumbnails", f"""{media.get("row")}_{media.get("uar")}_{media.get("id", "")}{ext}""")
+        elif "html_metadata" in media.get("id", ""):
+            # filename = media.key.replace("/", "_")
+            filename = os.path.join("html_metadata", f"""{media.get("row")}_{media.get("uar")}{ext}""")
+        elif "screenshot" in media.get("id", ""):
+            # filename = media.key.replace("/", "_")
+            filename = os.path.join("screenshots", f"""{media.get("row")}_{media.get("uar")}{ext}""")
+        elif "media" in media.get("id", ""):
+            # filename = media.key.replace("/", "_")
+            filename = os.path.join("media", f"""{media.get("row")}_{media.get("uar")}{ext}""")
 
         destination_blob_name = os.path.join(self.top_level_folder, filename)
         blob = self.bucket.blob(destination_blob_name)
@@ -100,3 +111,9 @@ class GCSStorage(Storage):
         # Add error handling
         return self.cdn_url.format(bucket_name=self.bucket_name, 
                                    key=media.get("destination_blob_name", ""))
+    
+class GCSStorage1(GCSStorage, Storage):
+    name = "gcs_storage_1"
+
+class GCSStorage2(GCSStorage, Storage):
+    name = "gcs_storage_2"

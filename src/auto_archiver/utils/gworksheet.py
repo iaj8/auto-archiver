@@ -11,6 +11,7 @@ class GWorksheet:
     eg: if header=4, row 5 will be the first with data. 
     """
     COLUMN_NAMES = {
+        'uar': 'uar',
         'url': 'link',
         'status': 'media number + archive status',
         # 'folder': 'destination folder',
@@ -18,8 +19,8 @@ class GWorksheet:
         'archived_filenames': 'archived file location(s)',
         'downloaded_filenames': 'original downloaded filename(s)',
         'date': 'archive date',
-        'thumbnail': 'media screenshot',
-        'timestamp': 'upload timestamp',
+        'thumbnail': 'media thumbnail',
+        'timestamp': 'upload timestamp utc',
         'timestamp_est': 'upload timestamp est',
         'title': 'upload title',
         'title_translated': 'upload title translated',
@@ -27,6 +28,7 @@ class GWorksheet:
         'text_translated': 'text of post translated',
         'screenshot': 'post screenshot link',
         'hash': 'hash',
+        'codec_link': 'link for codec'
         # 'pdq_hash': 'perceptual hashes',
         # 'wacz': 'wacz',
         # 'replaywebpage': 'replaywebpage'
@@ -80,6 +82,14 @@ class GWorksheet:
 
     def get_values(self):
         return self.values
+    
+    def reload_sheet(self):
+        while True:
+            try:
+                self.values = self.wks.get_values()
+                break
+            except APIError:
+                sleep(60)
 
     def get_cell(self, row, col: str, fresh=False):
         """
@@ -91,11 +101,8 @@ class GWorksheet:
         col_index = self._col_index(col)
 
         if fresh:
-            while True:
-                try:
-                    return self.wks.cell(row, col_index + 1).value
-                except APIError:
-                    sleep(60)
+            # return self.wks.cell(row, col_index + 1).value
+            self.reload_sheet()
 
         if type(row) == int:
             row = self.get_row(row)

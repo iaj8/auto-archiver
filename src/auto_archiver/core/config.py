@@ -12,7 +12,7 @@ from ..databases import Database
 from ..formatters import Formatter
 from ..storages import Storage
 from ..enrichers import Enricher
-from . import Step
+from . import Step, ProjectDetail
 from ..utils import update_nested_dict
 
 
@@ -24,7 +24,8 @@ class Config:
         Archiver,
         Database,
         Storage,
-        Formatter
+        Formatter,
+        ProjectDetail
         # Util
     ]
     feeder: Feeder
@@ -32,6 +33,10 @@ class Config:
     archivers: List[Archiver] = field(default_factory=[])
     enrichers: List[Enricher] = field(default_factory=[])
     storages: List[Storage] = field(default_factory=[])
+    thumbnail_storages: List[Storage] = field(default_factory=[])
+    html_metadata_storages: List[Storage] = field(default_factory=[])
+    screenshot_storages: List[Storage] = field(default_factory=[])
+    project_details: List[ProjectDetail] = field(default_factory=[])
     databases: List[Database] = field(default_factory=[])
 
     def __init__(self) -> None:
@@ -100,6 +105,10 @@ class Config:
         steps = self.yaml_config.get("steps", {})
         assert "archivers" in steps, "your configuration steps are missing the archivers property"
         assert "storages" in steps, "your configuration steps are missing the storages property"
+        assert "thumbnail_storages" in steps, "your configuration steps are missing the thumbnail_storages property"
+        assert "html_metadata_storages" in steps, "your configuration steps are missing the html_metadata_storages property"
+        assert "screenshot_storages" in steps, "your configuration steps are missing the screenshot_storages property"
+        assert "project_details" in steps, "your configuration steps are missing the project_details property"
 
         self.feeder = Feeder.init(steps.get("feeder", "cli_feeder"), self.config)
         self.formatter = Formatter.init(steps.get("formatter", "mute_formatter"), self.config)
@@ -107,13 +116,21 @@ class Config:
         self.archivers = [Archiver.init(e, self.config) for e in (steps.get("archivers") or [])]
         self.databases = [Database.init(e, self.config) for e in steps.get("databases", [])]
         self.storages = [Storage.init(e, self.config) for e in steps.get("storages", [])]
+        self.thumbnail_storages = [Storage.init(e, self.config) for e in steps.get("thumbnail_storages", [])]
+        self.html_metadata_storages = [Storage.init(e, self.config) for e in steps.get("html_metadata_storages", [])]
+        self.screenshot_storages = [Storage.init(e, self.config) for e in steps.get("screenshot_storages", [])]
+        self.project_details = [ProjectDetail.init(e, self.config) for e in steps.get("project_details", [])]
 
         logger.info(f"FEEDER: {self.feeder.name}")
         logger.info(f"ENRICHERS: {[x.name for x in self.enrichers]}")
         logger.info(f"ARCHIVERS: {[x.name for x in self.archivers]}")
         logger.info(f"DATABASES: {[x.name for x in self.databases]}")
         logger.info(f"STORAGES: {[x.name for x in self.storages]}")
+        logger.info(f"THUMBNAIL_STORAGES: {[x.name for x in self.thumbnail_storages]}")
+        logger.info(f"HTML_METADATA_STORAGES: {[x.name for x in self.html_metadata_storages]}")
+        logger.info(f"SCREENSHOT_STORAGES: {[x.name for x in self.screenshot_storages]}")
         logger.info(f"FORMATTER: {self.formatter.name}")
+        logger.info(f"PROJECT_DETAILS: {[x.name for x in self.project_details]}")
 
     def read_yaml(self, yaml_filename: str) -> dict:
         with open(yaml_filename, "r", encoding="utf-8") as inf:

@@ -58,6 +58,7 @@ class HtmlFormatter(Formatter):
         if len(hd := he.calculate_hash(final_media.filename)):
             final_media.set("hash", f"{he.algorithm}:{hd}")
 
+        final_media.set("id", f"html_metadata")
         return final_media
 
 

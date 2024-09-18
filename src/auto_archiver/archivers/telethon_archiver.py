@@ -12,6 +12,7 @@ from . import Archiver
 from ..core import Metadata, Media, ArchivingContext
 from ..utils import random_str
 
+DEFAULT_SESSION_FILE = "secrets/anon-telethon"
 
 class TelethonArchiver(Archiver):
     name = "telethon_archiver"
@@ -29,7 +30,7 @@ class TelethonArchiver(Archiver):
             "api_id": {"default": None, "help": "telegram API_ID value, go to https://my.telegram.org/apps"},
             "api_hash": {"default": None, "help": "telegram API_HASH value, go to https://my.telegram.org/apps"},
             "bot_token": {"default": None, "help": "optional, but allows access to more content such as large videos, talk to @botfather"},
-            "session_file": {"default": "secrets/anon", "help": "optional, records the telegram login session for future usage, '.session' will be appended to the provided value."},
+            "session_file": {"default": DEFAULT_SESSION_FILE, "help": "optional, records the telegram login session for future usage, '.session' will be appended to the provided value."},
             "join_channels": {"default": True, "help": "disables the initial setup with channel_invites config, useful if you have a lot and get stuck"},
             "channel_invites": {
                 "default": {},
@@ -102,7 +103,8 @@ class TelethonArchiver(Archiver):
     def cleanup(self) -> None:
         logger.info(f"CLEANUP {self.name}.")
         session_file_name = self.session_file + ".session"
-        if os.path.exists(session_file_name):
+        if os.path.exists(session_file_name) and session_file_name != DEFAULT_SESSION_FILE:
+            print("remove", session_file_name)
             os.remove(session_file_name)
 
     def download(self, item: Metadata) -> Metadata:
@@ -151,10 +153,10 @@ class TelethonArchiver(Archiver):
                 if mp.entities:
                     other_media_urls = [e.url for e in mp.entities if hasattr(e, "url") and e.url and self._guess_file_type(e.url) in ["video", "image", "audio"]]
                     if len(other_media_urls):
-                        logger.debug(f"Got {len(other_media_urls)} other media urls from {mp.id=}: {other_media_urls}")
-                    for i, om_url in enumerate(other_media_urls):
-                        filename = self.download_from_url(om_url, f'{chat}_{group_id}_{i}')
-                        result.add_media(Media(filename=filename), id=f"{group_id}_{i}")
+                        logger.debug(f"Got {len(other_media_urls)} other media urls from {mp.id=}: {other_media_urls}. Skipping.")
+                    # for i, om_url in enumerate(other_media_urls):
+                    #     filename = self.download_from_url(om_url, f'{chat}_{group_id}_{i}')
+                    #     result.add_media(Media(filename=filename), id=f"{group_id}_{i}")
 
                 filename_dest = os.path.join(tmp_dir, f'{chat}_{group_id}', str(mp.id))
                 filename = self.client.download_media(mp.media, filename_dest)

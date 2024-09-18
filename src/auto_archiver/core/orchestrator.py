@@ -13,8 +13,13 @@ from ..enrichers import Enricher
 from ..databases import Database
 from .metadata import Metadata
 
+from .project_details import ProjectDetail
+
 import tempfile, traceback
 from loguru import logger
+
+import random
+import string
 
 
 class ArchivingOrchestrator:
@@ -25,7 +30,16 @@ class ArchivingOrchestrator:
         self.archivers: List[Archiver] = config.archivers
         self.databases: List[Database] = config.databases
         self.storages: List[Storage] = config.storages
+        self.thumbnail_storages: List[Storage] = config.thumbnail_storages
+        self.html_metadata_storages: List[Storage] = config.html_metadata_storages
+        self.screenshot_storages: List[Storage] = config.screenshot_storages
+        self.project_details: List[ProjectDetail] = config.project_details
+
         ArchivingContext.set("storages", self.storages, keep_on_reset=True)
+        ArchivingContext.set("thumbnail_storages", self.thumbnail_storages, keep_on_reset=True)
+        ArchivingContext.set("html_metadata_storages", self.html_metadata_storages, keep_on_reset=True)
+        ArchivingContext.set("screenshot_storages", self.screenshot_storages, keep_on_reset=True)
+        ArchivingContext.set("project_details", self.project_details, keep_on_reset=True)
 
         try: 
             for a in self.all_archivers_for_setup(): a.setup()
@@ -33,6 +47,19 @@ class ArchivingOrchestrator:
             logger.error(f"Error during setup of archivers: {e}\n{traceback.format_exc()}")
             self.cleanup()
 
+
+    def set_uar(self):
+        project_name = None
+        for detail in self.project_details:
+            if detail.name == "project_name":
+                project_name = detail.value
+
+        if project_name is None:
+            raise AssertionError("Project name should never be None. Check your config file")
+
+        random_string = ''.join(random.choices(string.ascii_lowercase, k=2))
+
+        return f"""{project_name}_{random_string}"""
 
     def cleanup(self)->None:
         logger.info("Cleaning up")
@@ -104,10 +131,14 @@ class ArchivingOrchestrator:
         for a in self.archivers:
             logger.info(f"Trying archiver {a.name} for {url}")
             try:
-                result.merge(a.download(result))
+                r = a.download(result)
+                result.merge(r)
                 if result.is_success(): break
             except Exception as e: 
                 logger.error(f"ERROR archiver {a.name}: {e}: {traceback.format_exc()}")
+
+        for i, m in enumerate(result.get_all_media()):
+            m.set("id", f"""media_{i+1}""")
 
         # 4 - call enrichers to work with archived content
         for e in self.enrichers:
@@ -115,11 +146,17 @@ class ArchivingOrchestrator:
             except Exception as exc: 
                 logger.error(f"ERROR enricher {e.name}: {exc}: {traceback.format_exc()}")
 
+        gsheet = ArchivingContext.get("gsheet")
+        for m in result.get_all_media():
+            m.set("row", gsheet.get("row"))
+            m.set("uar", self.set_uar())
         # 5 - store all downloaded/generated media
         result.store()
 
         # 6 - format and store formatted if needed
         if (final_media := self.formatter.format(result)):
+            final_media.set("row", gsheet.get("row"))
+            final_media.set("uar", self.set_uar())
             final_media.store(url=url, metadata=result)
             result.set_final_media(final_media)
 
@@ -133,7 +170,7 @@ class ArchivingOrchestrator:
                 logger.error(f"ERROR database {d.name}: {e}: {traceback.format_exc()}")
 
         # set the row_offset to the number of links archived
-        all_media = [m for m in result.get_all_media() if (m.get("id", "") != "_final_media" and "thumbnail" not in m.get("id", "") and "screenshot" not in m.get("id", ""))]
+        all_media = [m for m in result.get_all_media() if (m.get("id", "") != "_final_media" and "thumbnail" not in m.get("id", "") and "html_metadata" not in m.get("id", "") and "screenshot" not in m.get("id", ""))]
         self.feeder.row_offset = len(all_media)
         return result
 
