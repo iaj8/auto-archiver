@@ -1,4 +1,6 @@
 import json, gspread
+from gspread.exceptions import APIError
+from time import sleep
 
 from ..core import Step
 
@@ -25,6 +27,7 @@ class Gsheets(Step):
             "service_account": {"default": "secrets/service_account.json", "help": "service account JSON file path"},
             "columns": {
                 "default": {
+                    'uar': 'uar',
                     'url': 'link',
                     'status': 'media number + archive status',
                     # 'folder': 'destination folder',
@@ -32,8 +35,8 @@ class Gsheets(Step):
                     'archived_filenames': 'archived file location(s)',
                     'downloaded_filenames': 'original downloaded filename(s)',
                     'date': 'archive date',
-                    'thumbnail': 'media screenshot',
-                    'timestamp': 'upload timestamp',
+                    'thumbnail': 'media thumbnail',
+                    'timestamp': 'upload timestamp utc',
                     'timestamp_est': 'upload timestamp est',
                     'title': 'upload title',
                     'title_translated': 'upload title translated',
@@ -41,6 +44,7 @@ class Gsheets(Step):
                     'text_translated': 'text of post translated',
                     'screenshot': 'post screenshot link',
                     'hash': 'hash',
+                    'codec_link': 'link for codec'
                     # 'pdq_hash': 'perceptual hashes',
                     # 'wacz': 'wacz',
                     # 'replaywebpage': 'replaywebpage'
@@ -51,7 +55,11 @@ class Gsheets(Step):
         }
 
     def open_sheet(self):
-        if self.sheet:
-            return self.gsheets_client.open(self.sheet)
-        else:  # self.sheet_id
-            return self.gsheets_client.open_by_key(self.sheet_id)
+        while True:
+            try:
+                if self.sheet:
+                    return self.gsheets_client.open(self.sheet)
+                else:  # self.sheet_id
+                    return self.gsheets_client.open_by_key(self.sheet_id)
+            except APIError:
+                sleep(60)

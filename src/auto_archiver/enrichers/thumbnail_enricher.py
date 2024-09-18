@@ -59,10 +59,22 @@ class ThumbnailEnricher(Enricher):
                     try:
                         thumbnails_media.append(Media(
                             filename=output_path)
-                            .set("id", f"thumbnail_{index}")
+                            .set("id", f"thumbnail_{index+1}")
                             .set("timestamp", "%.3fs" % timestamp)
                         )
                     except Exception as e:
                         logger.error(f"error creating thumbnail {index} for media: {e}")
+
+                to_enrich.media[m_id].set("thumbnails", thumbnails_media)
+            elif "screenshot" not in m.get("id", ""):
+                logger.debug(f"copying {m.filename} as thumbnail")
+                thumbnails_media = []
+                try:
+                    thumbnails_media.append(Media(
+                        filename=m.filename)
+                        .set("id", f"thumbnail")
+                    )
+                except Exception as e:
+                    logger.error(f"error creating thumbnail for media: {e}")
 
                 to_enrich.media[m_id].set("thumbnails", thumbnails_media)

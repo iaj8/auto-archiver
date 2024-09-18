@@ -31,13 +31,40 @@ class Media:
         # its properties, in case they have inner media themselves for now it
         # only goes down 1 level but it's easy to make it recursive if needed.
         storages = override_storages or ArchivingContext.get("storages")
+        thumbnail_storages = ArchivingContext.get("thumbnail_storages")
+        html_metadata_storages = ArchivingContext.get("html_metadata_storages")
+        screenshot_storages = ArchivingContext.get("screenshot_storages")
+
         if not len(storages):
             logger.warning(f"No storages found in local context or provided directly for {self.filename}.")
             return
 
         for s in storages:
             for any_media in self.all_inner_media(include_self=True):
-                s.store(any_media, url, metadata=metadata)
+                # if its not a thumbnail and its not a metadata file
+                if any_media.get("id") is None or ("thumbnail" not in any_media.get("id") 
+                    and "html_metadata" not in any_media.get("id")
+                    and "screenshot" not in any_media.get("id")
+                ):
+                    s.store(any_media, url, metadata=metadata)
+
+        for s in thumbnail_storages:
+            for any_media in self.all_inner_media(include_self=True):
+                # if it is a thumbnail
+                if any_media.get("id") is not None and "thumbnail" in any_media.get("id"):
+                    s.store(any_media, url, metadata=metadata)
+
+        for s in html_metadata_storages:
+            for any_media in self.all_inner_media(include_self=True):
+                # if it is a metadata file
+                if any_media.get("id") is not None and "html_metadata" in any_media.get("id"):
+                    s.store(any_media, url, metadata=metadata)
+
+        for s in screenshot_storages:
+            for any_media in self.all_inner_media(include_self=True):
+                # if it is a metadata file
+                if any_media.get("id") is not None and "screenshot" in any_media.get("id"):
+                    s.store(any_media, url, metadata=metadata)
 
     def all_inner_media(self, include_self=False):
         """ Media can be inside media properties, examples include transformations on original media.

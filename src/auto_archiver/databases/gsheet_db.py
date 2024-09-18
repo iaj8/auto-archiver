@@ -12,7 +12,9 @@ import os
 
 from google.cloud import translate_v2 as translate
 
-from pprint import pprint
+import re
+import random
+import string
 
 class GsheetsDb(Database):
     """
@@ -97,8 +99,6 @@ class GsheetsDb(Database):
         if text_translated["detectedSourceLanguage"] != 'en':
             batch_if_valid(row, 'text_translated', 
                 f"""({text_translated["detectedSourceLanguage"]}) {text_translated["translatedText"]}""")
-
-        batch_if_valid(row, 'timestamp', item.get_timestamp())
         
         timestamp = item.get_timestamp()
         if timestamp is not None:
@@ -106,6 +106,7 @@ class GsheetsDb(Database):
             date_utc = datetime.strptime(timestamp, '%Y-%m-%dT%H:%M:%S%z')
             date_est = date_utc.astimezone(est)
 
+            batch_if_valid(row, 'timestamp', date_utc.strftime('%Y-%m-%d %I:%M:%S %p'))
             batch_if_valid(row, 'timestamp_est', date_est.strftime('%Y-%m-%d %I:%M:%S %p'))
 
         # merge all pdq hashes into a single string, if present
@@ -116,15 +117,42 @@ class GsheetsDb(Database):
 
         folder = None
 
-        all_media = [m for m in item.get_all_media() if (m.get("id", "") != "_final_media" and "thumbnail" not in m.get("id", "") and "screenshot" not in m.get("id", ""))]
-        for i, m in enumerate(all_media):
+        all_media = [m for m in item.get_all_media() if (m.get("id", "") != "_final_media" and "thumbnail" not in m.get("id", "") and "html_metadata" not in m.get("id", "") and "screenshot" not in m.get("id", ""))]
+        if len(all_media) == 0:
+            cell_updates.append((row, 'status', "no media or no archiver for this website"))
+            try:
+                batch_if_valid(row, 'uar', f"""{row}_{item.get_final_media().get("uar")}""")
+            except AttributeError:
+                random_string = ''.join(random.choices(string.ascii_lowercase, k=2))
+                batch_if_valid(row, 'uar', f"""{row}_no_media_{random_string}""")
+
+        for m in all_media:
             m: Media
             if pdq := m.get("pdq_hash"):
                 pdq_hashes.append(pdq)
-            
+
+            i = int(re.search(r'\d+', m.get("id")).group()) - 1
+
+            batch_if_valid(row+i, 'uar', f"""{row+i}_{m.get("uar")}""")
         
             downloaded_filename = os.path.basename(m.filename)
-            archived_filename = m.urls[0]
+            codec_filename = None
+            project_format = None
+            for detail in ArchivingContext.get("project_details"):
+                if detail.name == "project_format":
+                    project_format = detail.value
+
+            if project_format is None:
+                archived_filename = m.urls[0]
+            elif project_format == "vi-gd-gcs-codec":
+                for u in m.urls:
+                    if "drive.google.com" in u:
+                        archived_filename = u
+                    if "storage.cloud.google" in u:
+                        codec_filename = u
+                    
+            if codec_filename is not None:
+                batch_if_valid(row+i, 'codec_link', codec_filename)
 
             batch_if_valid(row+i, 'downloaded_filenames', downloaded_filename)
             batch_if_valid(row+i, 'archived_filenames', archived_filename)
@@ -134,10 +162,13 @@ class GsheetsDb(Database):
 
             batch_if_valid(row+i, 'hash', m.get("hash", "not-calculated"))
 
-            # if hasattr(m, "thumbnails"): TODO: For some reason hasattr doesn't work here
-            if m.get("thumbnails") is not None and m.get("thumbnails")[0] is not None:
-                batch_if_valid(row+i, 'thumbnail', f'=IMAGE("{m.get("thumbnails")[0].urls[0]}")')
-            else:
+            try:
+                # if hasattr(m, "thumbnails"): TODO: For some reason hasattr doesn't work here
+                if m.get("thumbnails") is not None and m.get("thumbnails")[0] is not None:
+                    batch_if_valid(row+i, 'thumbnail', f'=IMAGE("{m.get("thumbnails")[0].urls[0]}")')
+                else:
+                    batch_if_valid(row+i, 'thumbnail', f'=IMAGE("{m.urls[0]}")')
+            except IndexError:
                 batch_if_valid(row+i, 'thumbnail', f'=IMAGE("{m.urls[0]}")')
 
             # downloaded_filenames.append(downloaded_filename)

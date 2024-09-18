@@ -56,14 +56,17 @@ class GsheetsFeeder(Gsheets, Feeder):
             # for row in range(1 + self.header, gw.count_rows() + 1):
             row = self.header
             while True:
-                row += self.row_offset
-                if row > gw.count_rows(): break
+                row += max(1, self.row_offset)
+                if row > gw.count_rows():
+                    gw.reload_sheet()
+                    if row > gw.count_rows():
+                        break
 
                 url = gw.get_cell(row, 'url').strip()
                 if not len(url): continue
 
                 original_status = gw.get_cell(row, 'status')
-                status = gw.get_cell(row, 'status', fresh=original_status in ['', None])
+                status = gw.get_cell(row, 'status', fresh=(original_status in ['', None] or row == gw.count_rows()))
                 # TODO: custom status parser(?) aka should_retry_from_status
                 if status not in ['', None]: continue
 

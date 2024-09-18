@@ -12,6 +12,8 @@ from google.auth.transport.requests import Request
 from ..core import Media
 from . import Storage
 
+import re
+
 
 class GDriveStorage(Storage):
     name = "gdrive_storage"
@@ -67,6 +69,25 @@ class GDriveStorage(Storage):
                 "oauth_token": {"default": None, "help": "JSON filename with Google Drive OAuth token: check auto-archiver repository scripts folder for create_update_gdrive_oauth_token.py. NOTE: storage used will count towards owner of GDrive folder, therefore it is best to use oauth_token_filename over service_account."},
                 "service_account": {"default": "secrets/service_account.json", "help": "service account JSON file path, same as used for Google Sheets. NOTE: storage used will count towards the developer account."},
             })
+    
+    def get_path_parts(self, media: Media) -> list[str]:
+        path_parts = []
+
+        _, ext = os.path.splitext(media.key)
+
+
+        if "media" in media.get("id"):
+            i = int(re.search(r'\d+', media.get("id")).group()) - 1
+            filename = f"""{media.get("row")+i}_{media.get("uar")}{ext}"""
+            path_parts = ["media", filename]
+        # elif "screenshot" in media.get("id"):
+            # filename = f"""{media.get("row")}_{media.get("uar")}{ext}"""
+            # path_parts = ["screenshots", filename]
+        # elif "html_metadata" in media.get("id"):
+        #     filename = f"""{media.get("row")}_{media.get("uar")}{ext}"""
+        #     path_parts = ["html_metadata", filename]
+        
+        return path_parts
 
     def get_cdn_url(self, media: Media) -> str:
         """
@@ -76,8 +97,9 @@ class GDriveStorage(Storage):
 
         # full_name = os.path.join(self.folder, media.key)
         parent_id, folder_id = self.root_folder_id, None
-        path_parts = media.key.split(os.path.sep)
+        path_parts = self.get_path_parts(media)
         filename = path_parts[-1]
+
         logger.info(f"looking for folders for {path_parts[0:-1]} before getting url for {filename=}")
         for folder in path_parts[0:-1]:
             folder_id = self._get_id_from_parent_and_name(parent_id, folder, use_mime_type=True, raise_on_missing=True)
@@ -94,8 +116,9 @@ class GDriveStorage(Storage):
         2. upload file to root_id/other_paths.../filename
         """
         parent_id, upload_to = self.root_folder_id, None
-        path_parts = media.key.split(os.path.sep)
+        path_parts = self.get_path_parts(media) #self.key.split(os.path.sep)
         filename = path_parts[-1]
+
         logger.info(f"checking folders {path_parts[0:-1]} exist (or creating) before uploading {filename=}")
         for folder in path_parts[0:-1]:
             upload_to = self._get_id_from_parent_and_name(parent_id, folder, use_mime_type=True, raise_on_missing=False)
@@ -116,7 +139,7 @@ class GDriveStorage(Storage):
     # must be implemented even if unused
     def uploadf(self, file: IO[bytes], key: str, **kwargs: dict) -> bool: pass
 
-    def _get_id_from_parent_and_name(self, parent_id: str, name: str, retries: int = 1, sleep_seconds: int = 10, use_mime_type: bool = False, raise_on_missing: bool = True, use_cache=False):
+    def _get_id_from_parent_and_name(self, parent_id: str, name: str, retries: int = 3, sleep_seconds: int = 10, use_mime_type: bool = False, raise_on_missing: bool = True, use_cache=False):
         """
         Retrieves the id of a folder or file from its @name and the @parent_id folder
         Optionally does multiple @retries and sleeps @sleep_seconds between them
