@@ -1,7 +1,7 @@
 tmp*/
 temp/
 .env*
-.DS_Store
+.DS_Store*
 expmt/
 service_account.json
 __pycache__/
@@ -29,3 +29,4 @@ auto_archiver.egg-info*
 logs*
 *.csv
 archived/
+Icon*
