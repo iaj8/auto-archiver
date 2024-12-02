@@ -1,5 +1,6 @@
 from typing import Union, Tuple
 from datetime import datetime, timedelta, timezone
+import pytz
 from urllib.parse import quote
 
 from loguru import logger
@@ -22,6 +23,7 @@ class GsheetsDb(Database):
         could be updated in the future to support non-GsheetFeeder metadata 
     """
     name = "gsheet_db"
+    est = pytz.timezone('US/Eastern')
 
     def __init__(self, config: dict) -> None:
         # without this STEP.__init__ is not called
@@ -133,7 +135,15 @@ class GsheetsDb(Database):
 
             i = int(re.search(r'\d+', m.get("id")).group()) - 1
 
-            batch_if_valid(row+i, 'uar', f"""{row+i}_{m.get("uar")}""")
+            _, ext = os.path.splitext(m.key)
+
+            # batch_if_valid(row+i, 'uar', f"""{row+i}_{m.get("uar")}""")
+
+            timestamp = item.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
+            title = item.get("title")
+            filename = f"""{timestamp} EST {title}_{row+i}{ext}"""
+
+            batch_if_valid(row+i, 'uar', filename)
         
             downloaded_filename = os.path.basename(m.filename)
             codec_filename = None
