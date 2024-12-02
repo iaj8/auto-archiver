@@ -27,7 +27,7 @@ steps:
     # - local_storage
     # - s3_storage
     - gdrive_storage
-    - gcs_storage_1
+    # - gcs_storage_1
   thumbnail_storages: # Location thumbnails are stored
     - gcs_storage_2
   html_metadata_storages: # Location html metadata files are stored
@@ -177,7 +177,7 @@ configurations:
     path_generator: url
     filename_generator: static
     # root_folder_id: 1ekMiHv15Zg85lRNESD014dGWym-zAq-4
-    # oauth_token: secrets/gd-token.json # needs to be generated with scripts/create_update_gdrive_oauth_token.py
+    oauth_token: secrets/gd-token.json # needs to be generated with scripts/create_update_gdrive_oauth_token.py
     service_account: "secrets/service_account.json"
 
   csv_db:

@@ -150,6 +150,8 @@ class ArchivingOrchestrator:
         for m in result.get_all_media():
             m.set("row", gsheet.get("row"))
             m.set("uar", self.set_uar())
+            m.set("title", result.get("title"))
+            m.set("timestamp", result.get("timestamp"))
         # 5 - store all downloaded/generated media
         result.store()
 

@@ -14,9 +14,13 @@ from . import Storage
 
 import re
 
+from datetime import datetime
+import pytz
+
 
 class GDriveStorage(Storage):
     name = "gdrive_storage"
+    est = pytz.timezone('US/Eastern')
 
     def __init__(self, config: dict) -> None:
         super().__init__(config)
@@ -75,11 +79,26 @@ class GDriveStorage(Storage):
 
         _, ext = os.path.splitext(media.key)
 
-
         if "media" in media.get("id"):
             i = int(re.search(r'\d+', media.get("id")).group()) - 1
-            filename = f"""{media.get("row")+i}_{media.get("uar")}{ext}"""
-            path_parts = ["media", filename]
+
+            timestamp = media.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
+            title = media.get("title")
+
+            now = f"""{datetime.now().astimezone(self.est).strftime("%Y-%m-%d")} EST"""
+
+            filename = f"""{timestamp} EST {title}_{media.get("row")+i}{ext}"""
+            path_parts = [now, filename]
+
+        # if "media" in media.get("id"):
+        #     i = int(re.search(r'\d+', media.get("id")).group()) - 1
+        #     filename = f"""{media.get("row")+i}_{media.get("uar")}{ext}"""
+        #     path_parts = ["media", filename]
+
+        # if "media" in media.get("id"):
+        #     i = int(re.search(r'\d+', media.get("id")).group()) - 1
+        #     filename = f"""{media.get("row")+i}_{media.get("uar")}{ext}"""
+        #     path_parts = ["media", filename]
         # elif "screenshot" in media.get("id"):
             # filename = f"""{media.get("row")}_{media.get("uar")}{ext}"""
             # path_parts = ["screenshots", filename]
