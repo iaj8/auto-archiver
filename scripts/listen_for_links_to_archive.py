@@ -89,14 +89,14 @@ def worker(worker_id, executor):
                 print("worksheet_name", worksheet_name)
                 print("authenticated_url_prefix", authenticated_url_prefix)
 
-                future_2 = executor.submit(
-                    rsync_gdrive_and_gcs, service_account_path, 
-                    top_level_drive_folder, gcs_bucket_name, 
-                    top_level_gcs_folder, sheet_id, worksheet_name, 
-                    authenticated_url_prefix
-                )
-                result_2 = future_2.result()
-                print(f"Worker {worker_id}: sync complete")
+                # future_2 = executor.submit(
+                #     rsync_gdrive_and_gcs, service_account_path, 
+                #     top_level_drive_folder, gcs_bucket_name, 
+                #     top_level_gcs_folder, sheet_id, worksheet_name, 
+                #     authenticated_url_prefix
+                # )
+                # result_2 = future_2.result()
+                # print(f"Worker {worker_id}: sync complete")
 
         except (KeyboardInterrupt, Exception) as e:
             print(f"Error during running of job {job_id}: {e}")
@@ -110,7 +110,7 @@ def run_auto_archiver(message_dict):
     root_folder_id = message_dict["driveFolderId"]
     project_name = message_dict["projectName"]
     
-    command = f"""cd .. && python -m src.auto_archiver --config vi-config.yaml  --gsheet_feeder.sheet_id "{sheet_id}" --gdrive_storage.root_folder_id "{root_folder_id}" --project_name.value "{project_name}" --gcs_storage_1.top_level_folder "{project_name}" --gcs_storage_2.top_level_folder "{project_name}" """
+    command = f"""cd .. && python -m src.auto_archiver --config vi-config.yaml  --gsheet_feeder.sheet_id "{sheet_id}" --gdrive_storage_1.root_folder_id "{root_folder_id}" --gdrive_storage_2.root_folder_id "{root_folder_id}" --project_name.value "{project_name}" --gcs_storage_1.top_level_folder "{project_name}" --gcs_storage_2.top_level_folder "{project_name}" """
     print(command)
     result = subprocess.run(command, shell=True, check=True)
     return result

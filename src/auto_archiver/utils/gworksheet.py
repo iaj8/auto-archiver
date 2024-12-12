@@ -28,7 +28,8 @@ class GWorksheet:
         'text_translated': 'text of post translated',
         'screenshot': 'post screenshot link',
         'hash': 'hash',
-        'codec_link': 'link for codec'
+        'codec_link': 'link for codec',
+        'trint_link': 'trint link'
         # 'pdq_hash': 'perceptual hashes',
         # 'wacz': 'wacz',
         # 'replaywebpage': 'replaywebpage'

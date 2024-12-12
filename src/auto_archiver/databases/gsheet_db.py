@@ -143,11 +143,15 @@ class GsheetsDb(Database):
             title = item.get("title")
             filename = f"""{timestamp} EST {title}_{row+i}{ext}"""
 
+            filename = m.clean_string(filename)
+
             batch_if_valid(row+i, 'uar', filename)
         
             downloaded_filename = os.path.basename(m.filename)
             codec_filename = None
             project_format = None
+            trint_link = None
+
             for detail in ArchivingContext.get("project_details"):
                 if detail.name == "project_format":
                     project_format = detail.value
@@ -160,9 +164,14 @@ class GsheetsDb(Database):
                         archived_filename = u
                     if "storage.cloud.google" in u:
                         codec_filename = u
+                    if "app.trint.com" in u:
+                        trint_link = u
                     
             if codec_filename is not None:
                 batch_if_valid(row+i, 'codec_link', codec_filename)
+
+            if trint_link is not None:
+                batch_if_valid(row+i, 'trint_link', trint_link)
 
             batch_if_valid(row+i, 'downloaded_filenames', downloaded_filename)
             batch_if_valid(row+i, 'archived_filenames', archived_filename)
