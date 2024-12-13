@@ -19,6 +19,7 @@ class GWorksheet:
         'archived_filenames': 'archived file location(s)',
         'downloaded_filenames': 'original downloaded filename(s)',
         'date': 'archive date',
+        'duration': 'duration (hh:mm:ss.mmmmmm)',
         'thumbnail': 'media thumbnail',
         'timestamp': 'upload timestamp utc',
         'timestamp_est': 'upload timestamp est',
@@ -28,7 +29,8 @@ class GWorksheet:
         'text_translated': 'text of post translated',
         'screenshot': 'post screenshot link',
         'hash': 'hash',
-        'codec_link': 'link for codec'
+        'codec_link': 'link for codec',
+        'credit_string': 'credit'
         # 'pdq_hash': 'perceptual hashes',
         # 'wacz': 'wacz',
         # 'replaywebpage': 'replaywebpage'

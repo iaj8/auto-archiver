@@ -7,6 +7,8 @@ from . import Archiver
 from ..core import Metadata, Media, ArchivingContext
 from ..utils.misc import random_str
 
+import re
+
 
 class TiktokArchiver(Archiver):
     name = "tiktok_archiver"
@@ -22,6 +24,13 @@ class TiktokArchiver(Archiver):
         url = item.get_url()
         if 'tiktok.com' not in url:
             return False
+        
+        m = re.match(".*tiktok.com/([^/]*)/", url)
+        username = m.group(1)
+
+        # credit_string = f"""{"@" if "@" not in username else ""}{username} via TikTok"""
+
+        # item.set("credit_string", credit_string)
 
         result = Metadata()
         try:

@@ -133,7 +133,12 @@ class ArchivingOrchestrator:
             try:
                 r = a.download(result)
                 result.merge(r)
-                if result.is_success(): break
+                if result.is_success() and result.get("credit_string") is not None: break
+                elif result.is_success() and result.get("credit_string") is None:
+                    logger.info("Getting just credits from youtubedl_archiver")
+                    for archiver in self.archivers:
+                        if archiver.name == "youtubedl_archiver":
+                            archiver.download(result, only_credit_string=True)
             except Exception as e: 
                 logger.error(f"ERROR archiver {a.name}: {e}: {traceback.format_exc()}")
 

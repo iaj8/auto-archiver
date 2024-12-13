@@ -134,6 +134,8 @@ class GsheetsDb(Database):
             i = int(re.search(r'\d+', m.get("id")).group()) - 1
 
             batch_if_valid(row+i, 'uar', f"""{row+i}_{m.get("uar")}""")
+            
+            batch_if_valid(row+i, 'credit_string', item.get("credit_string"))
         
             downloaded_filename = os.path.basename(m.filename)
             codec_filename = None
@@ -161,6 +163,8 @@ class GsheetsDb(Database):
             cell_updates.append((row+i, 'status', f"""{i+1}/{len(all_media)}: {status_message}"""))
 
             batch_if_valid(row+i, 'hash', m.get("hash", "not-calculated"))
+
+            batch_if_valid(row, 'duration', m.get("duration_str", ""))
 
             try:
                 # if hasattr(m, "thumbnails"): TODO: For some reason hasattr doesn't work here
@@ -194,6 +198,9 @@ class GsheetsDb(Database):
         if (browsertrix := item.get_media_by_id("browsertrix")):
             batch_if_valid(row, 'wacz', "\n".join(browsertrix.urls))
             batch_if_valid(row, 'replaywebpage', "\n".join([f'https://replayweb.page/?source={quote(wacz)}#view=pages&url={quote(item.get_url())}' for wacz in browsertrix.urls]))
+
+
+        batch_if_valid(row, 'credit_string', item.get("credit_string"))
 
         gw.batch_set_cell(cell_updates)
 
