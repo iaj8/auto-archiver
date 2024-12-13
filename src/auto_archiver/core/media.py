@@ -14,6 +14,8 @@ from .context import ArchivingContext
 
 from loguru import logger
 
+from urllib.parse import urlparse
+
 
 @dataclass_json  # annotation order matters
 @dataclass
@@ -24,6 +26,28 @@ class Media:
     properties: dict = field(default_factory=dict)
     _mimetype: str = None  # eg: image/jpeg
     _stored: bool = field(default=False, repr=False, metadata=config(exclude=lambda _: True))  # always exclude
+
+    domain_to_website_name = {
+        'foxnews.com': 'Fox News',
+        't.me': 'Telegram',
+        'x.com': 'X',
+        'youtube.com': 'YouTube',
+        'youtu.be': 'YouTube',
+        'facebook.com': 'Facebook',
+        'bsky.app': 'Bluesky',
+        'c-span.org': 'C-SPAN',
+        'instagram.com': 'Instagram',
+        'mobile.x.com': 'X',
+        'player.vimeo.com': 'Vimeo',
+        'podcasts.apple.com': 'Apple Podcasts',
+        'reddit.com': 'Reddit',
+        'rumble.com': 'Rumble',
+        'tiktok.com': 'TikTok',
+        'twitter.com': 'X',
+        'v.douyin.com': 'Douyin',
+        'vimeo.com': 'Vimeo',
+        'vk.com': 'VKontakte',
+    }
 
     def store(self: Media, override_storages: List = None, url: str = "url-not-available", metadata: Any = None):
         # 'Any' typing for metadata to avoid circular imports. Stores the media
@@ -133,3 +157,22 @@ class Media:
                 return fsize > 20_000
             except: pass
         return True
+
+    @staticmethod
+    def extract_full_domain(url):
+        parsed_url = urlparse(url)
+        domain = parsed_url.netloc
+        
+        # Remove 'www.' prefix if present
+        domain = domain.lstrip('www.')
+        return domain
+    
+    @staticmethod
+    def get_website_name(url):
+        domain = Media.extract_full_domain(url)
+        print("domain", domain)
+        try:
+            print("Media.domain_to_website_name[domain]", Media.domain_to_website_name[domain])
+            return Media.domain_to_website_name[domain]
+        except KeyError:
+            return domain

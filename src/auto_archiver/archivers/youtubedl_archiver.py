@@ -35,12 +35,16 @@ class YoutubeDLArchiver(Archiver):
             "max_downloads": {"default": "inf", "help": "Use to limit the number of videos to download when a channel or long page is being extracted. 'inf' means no limit."},
         }
 
-    def download(self, item: Metadata) -> Metadata:
+    def download(self, item: Metadata, only_credit_string=False) -> Metadata:
         url = item.get_url()
 
         if item.netloc in ['facebook.com', 'www.facebook.com'] and self.facebook_cookie:
             logger.debug('Using Facebook cookie')
             yt_dlp.utils.std_headers['cookie'] = self.facebook_cookie
+
+        if item.netloc in ['vk.com', 'www.vk.com']:
+            item.set("credit_string", "VKontakte")
+            return item
 
         ydl_options = {
                         'outtmpl': os.path.join(ArchivingContext.get_tmp_dir(), f'%(id)s.%(ext)s'), 
@@ -92,7 +96,7 @@ class YoutubeDLArchiver(Archiver):
         # this time download
         ydl = yt_dlp.YoutubeDL({**ydl_options, "getcomments": self.comments})
         #TODO: for playlist or long lists of videos, how to download one at a time so they can be stored before the next one is downloaded?
-        info = ydl.extract_info(url, download=True)
+        info = ydl.extract_info(url, download=(not only_credit_string))
 
         if "entries" in info:
             entries = info.get("entries", [])
@@ -102,8 +106,8 @@ class YoutubeDLArchiver(Archiver):
         else: entries = [info]
 
         result = Metadata()
-        result.set_title(info.get("title"))
-        if "description" in info: result.set_content(info["description"])
+        if not only_credit_string: result.set_title(info.get("title"))
+        if "description" in info and not only_credit_string: result.set_content(info["description"])
         for entry in entries:
             try:
                 filename = ydl.prepare_filename(entry)
@@ -114,7 +118,7 @@ class YoutubeDLArchiver(Archiver):
 
                 new_media = Media(filename)
                 for x in ["duration", "original_url", "fulltitle", "description", "upload_date"]:
-                    if x in entry: new_media.set(x, entry[x])
+                    if x in entry and not only_credit_string: new_media.set(x, entry[x])
 
                 # read text from subtitles if enabled
                 if self.subtitles:
@@ -122,7 +126,7 @@ class YoutubeDLArchiver(Archiver):
                         try:    
                             subs = pysubs2.load(val.get('filepath'), encoding="utf-8")
                             text = " ".join([line.text for line in subs])
-                            new_media.set(f"subtitles_{lang}", text)
+                            if not only_credit_string: new_media.set(f"subtitles_{lang}", text)
                         except Exception as e:
                             logger.error(f"Error loading subtitle file {val.get('filepath')}: {e}")
                 result.add_media(new_media)
@@ -130,7 +134,7 @@ class YoutubeDLArchiver(Archiver):
                 logger.error(f"Error processing entry {entry}: {e}")
 
         # extract comments if enabled
-        if self.comments:
+        if self.comments and not only_credit_string:
             result.set("comments", [{
                 "text": c["text"],
                 "author": c["author"], 
@@ -140,10 +144,39 @@ class YoutubeDLArchiver(Archiver):
         if (timestamp := info.get("timestamp")):
             #TODO: fix deprecated timestamp, 
             timestamp = datetime.datetime.fromtimestamp(timestamp, tz = datetime.timezone.utc).isoformat()
-            result.set_timestamp(timestamp)
+            if not only_credit_string: result.set_timestamp(timestamp)
         if (upload_date := info.get("upload_date")):
             upload_date = datetime.datetime.strptime(upload_date, '%Y%m%d').replace(tzinfo=datetime.timezone.utc)
-            result.set("upload_date", upload_date)
+            if not only_credit_string: result.set("upload_date", upload_date)
+
+        uploader = info.get("uploader", "<Uploader Name>")
+        uploader_id = info.get("uploader_id", "<@Uploader Handle>")
+
+        website_name = Media.get_website_name(url)
+
+        if website_name in ["Instagram"]:
+            uploader_id = info.get("channel", "<@Uploader Handle>")
+
+        if website_name in ["TikTok"]:
+            uploader = info.get("channel", "<Uploader Name>")
+            uploader_id = info.get("uploader", "<@Uploader Handle>")
+
+        if website_name in ["Telegram"]:
+            uploader = info.get("channel", "<Uploader Name>")
+            uploader_id = info.get("channel_id", "<@Uploader Handle>")
+
+        if website_name in ["Facebook", "Reddit"]:
+            credit_string = f"""{uploader} via {website_name}"""
+        elif website_name in ["Telegram"]:
+            credit_string = f"""{uploader} ({uploader_id}) via {website_name}"""
+        elif uploader_id == "<@Uploader Handle>" and uploader != "<Uploader Name>":
+            credit_string = f"""{uploader} via {website_name}"""
+        elif uploader_id == "<@Uploader Handle>" and uploader == "<Uploader Name>":
+            credit_string = f"""{website_name}"""
+        else:
+            credit_string = f"""{uploader} ({"@" if "@" not in uploader_id else ""}{uploader_id}) via {website_name}"""
+
+        result.set("credit_string", credit_string)
 
         if self.end_means_success: result.success("yt-dlp")
         else: result.status = "yt-dlp"

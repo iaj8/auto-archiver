@@ -55,6 +55,10 @@ class TwitterArchiver(Archiver):
         username, tweet_id = self.get_username_tweet_id(url)
         if not username: return False
 
+        # credit_string = f"""{"@" if "@" not in username else ""}{username} via X"""
+
+        # item.set("credit_string", credit_string)
+
         strategies = [self.download_yt_dlp, self.download_snscrape, self.download_syndication]
         for strategy in strategies:
             logger.debug(f"Trying {strategy.__name__} for {url=}")
