@@ -263,14 +263,14 @@ def rsync_gdrive_and_gcs(service_account_path, top_level_drive_folder, gcs_bucke
 
     print(datetime.now(), f"Updated spreadsheet")
 
-service_account_path = "../secrets/service_account.json"
-top_level_drive_folder = "153ITZjrC4InICxO2F1i_USYkUFkNBBrD"
-gcs_bucket_name = "vi_workflow"
-top_level_gcs_folder = "vi_workflow_tests_part_3"
-sheet_id = "1AOjaCHgKUUmIl_KaJvAIjD9NhMnNMj25Fs_ubWI0x1Q"
-worksheet_name = "Media"
+# service_account_path = "../secrets/service_account.json"
+# top_level_drive_folder = "153ITZjrC4InICxO2F1i_USYkUFkNBBrD"
+# gcs_bucket_name = "vi_workflow"
+# top_level_gcs_folder = "vi_workflow_tests_part_3"
+# sheet_id = "1AOjaCHgKUUmIl_KaJvAIjD9NhMnNMj25Fs_ubWI0x1Q"
+# worksheet_name = "Media"
 
-authenticated_url_prefix = f"https://storage.cloud.google.com/{gcs_bucket_name}"
-authenticated_url_prefix = f"https://storage.cloud.google.com/{gcs_bucket_name}"
+# authenticated_url_prefix = f"https://storage.cloud.google.com/{gcs_bucket_name}"
+# authenticated_url_prefix = f"https://storage.cloud.google.com/{gcs_bucket_name}"
 
-rsync_gdrive_and_gcs(service_account_path, top_level_drive_folder, gcs_bucket_name, top_level_gcs_folder, sheet_id, worksheet_name, authenticated_url_prefix)
+# rsync_gdrive_and_gcs(service_account_path, top_level_drive_folder, gcs_bucket_name, top_level_gcs_folder, sheet_id, worksheet_name, authenticated_url_prefix)
