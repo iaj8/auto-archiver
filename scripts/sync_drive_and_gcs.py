@@ -239,7 +239,6 @@ def rsync_gdrive_and_gcs(service_account_path, top_level_drive_folder, gcs_bucke
                 "backgroundColor": MANUAL_UPL_HIGHLIGHT_COLOR
             })
 
-            upload_file_to_gcs(client, gcs_bucket_name, os.path.join(top_level_gcs_folder, 'media', file_name), file_data, content_type)
         else:
             duration, _ = get_media_duration_and_sha3_512(os.path.splitext(file_name)[0], file_data, files_to_transfer[file_name]['mimeType'], get_hash=False)
 
@@ -252,6 +251,7 @@ def rsync_gdrive_and_gcs(service_account_path, top_level_drive_folder, gcs_bucke
                                   "values": [[f"""{authenticated_url_prefix}/{top_level_gcs_folder}/media/{file_name}"""]]
                                  })
         
+        upload_file_to_gcs(client, gcs_bucket_name, os.path.join(top_level_gcs_folder, 'media', file_name), file_data, content_type)
         print(datetime.now(), f"Transferred {file_name}")
 
     while True:
