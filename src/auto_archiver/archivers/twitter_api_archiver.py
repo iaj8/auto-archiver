@@ -8,6 +8,7 @@ from slugify import slugify
 from . import Archiver
 from .twitter_archiver import TwitterArchiver
 from ..core import Metadata,Media
+from time import sleep
 
 
 class TwitterApiArchiver(TwitterArchiver, Archiver):
@@ -63,7 +64,12 @@ class TwitterApiArchiver(TwitterArchiver, Archiver):
         username, tweet_id = self.get_username_tweet_id(url)
         if not username: return False
 
+        credit_string = f"""{"@" if "@" not in username else ""}{username} via X"""
+
+        item.set("credit_string", credit_string)
+
         try:
+            sleep(20)
             tweet = self.api_client.get_tweet(tweet_id, expansions=["attachments.media_keys"], media_fields=["type", "duration_ms", "url", "variants"], tweet_fields=["attachments", "author_id", "created_at", "entities", "id", "text", "possibly_sensitive"])
             logger.debug(tweet)
         except Exception as e:

@@ -5,7 +5,7 @@ steps:
     - vk_archiver
     - telethon_archiver
     - telegram_archiver
-    - twitter_archiver
+    # - twitter_archiver
     - twitter_api_archiver
     # - instagram_api_archiver
     - instagram_archiver
@@ -101,7 +101,7 @@ configurations:
   twitter_api_archiver:
     netscape_cookies: "secrets/netscape_cookies.txt"
     # either bearer_token only
-    bearer_token: "AAAAAAAAAAAAAAAAAAAAAESRrAEAAAAAmC4S38zyRV6yPwH5JRfAfxx1ggc%3Dc2FAKDDo1rW4LD7erMjHw9J9Q3xt8ag36dGx69sUF6Tb8agi2F"
+    bearer_token: "AAAAAAAAAAAAAAAAAAAAADjc0wEAAAAA8xoFsjcCk5cNLrYYslydrXf84O8%3DZ0VrQ1XAp3Cbdm4xnxrBJXw5OV2gyJ7biZoGWuRYjH84n1GUlD"
     # OR all of the below
     # consumer_key: ""
     # consumer_secret: ""
