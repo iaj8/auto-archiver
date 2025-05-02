@@ -119,7 +119,7 @@ def run_auto_archiver(message_dict):
     except:
         pass
     
-    command = f"""cd .. && python -m src.auto_archiver --config vi-config.yaml  --gsheet_feeder.sheet_id "{sheet_id}" --gdrive_storage_1.root_folder_id "{root_folder_id}" --gdrive_storage_2.root_folder_id "{root_folder_id}" --project_name.value "{project_name}" --gcs_storage_1.top_level_folder "{project_name}" --gcs_storage_2.top_level_folder "{project_name}" """
+    command = f"""cd .. && python -m src.auto_archiver --config vi-config.yaml  --gsheet_feeder.sheet_id "{sheet_id}" --gdrive_storage.root_folder_id "{root_folder_id}" --project_name.value "{project_name}" --gcs_storage_1.top_level_folder "{project_name}" --gcs_storage_2.top_level_folder "{project_name}" """
     print(command)
     result = subprocess.run(command, shell=True, check=True)
 

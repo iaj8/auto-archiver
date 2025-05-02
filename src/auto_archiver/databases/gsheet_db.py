@@ -130,6 +130,19 @@ class GsheetsDb(Database):
 
         for m in all_media:
             m: Media
+
+            downloaded_filename = os.path.basename(m.filename)
+            codec_filename = None
+            project_format = None
+            trint_link = None
+            project_naming_convention = None
+
+            for detail in ArchivingContext.get("project_details"):
+                if detail.name == "project_format":
+                    project_format = detail.value
+                if detail.name == "project_naming_convention":
+                    project_naming_convention = detail.value
+
             if pdq := m.get("pdq_hash"):
                 pdq_hashes.append(pdq)
 
@@ -153,18 +166,6 @@ class GsheetsDb(Database):
                 print("NAMING CONVENTION ISSUE")
             
             batch_if_valid(row+i, 'credit_string', item.get("credit_string"))
-        
-            downloaded_filename = os.path.basename(m.filename)
-            codec_filename = None
-            project_format = None
-            trint_link = None
-            project_naming_convention = None
-
-            for detail in ArchivingContext.get("project_details"):
-                if detail.name == "project_format":
-                    project_format = detail.value
-                if detail.name == "project_naming_convention":
-                    project_naming_convention = detail.value
 
             if project_format is None:
                 archived_filename = m.urls[0]
