@@ -13,6 +13,7 @@ class GWorksheet:
     COLUMN_NAMES = {
         'uar': 'uar',
         'url': 'link',
+        'name_prefix': 'subcategory',
         'status': 'media number + archive status',
         # 'folder': 'destination folder',
         'archive': 'additional information',
@@ -29,6 +30,7 @@ class GWorksheet:
         'screenshot': 'post screenshot link',
         'hash': 'hash',
         'codec_link': 'link for codec',
+        'send_to_trint': 'trint?',
         'trint_link': 'trint link'
         # 'pdq_hash': 'perceptual hashes',
         # 'wacz': 'wacz',

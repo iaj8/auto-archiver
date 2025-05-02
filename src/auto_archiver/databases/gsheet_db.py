@@ -137,15 +137,15 @@ class GsheetsDb(Database):
 
             _, ext = os.path.splitext(m.key)
 
-            # batch_if_valid(row+i, 'uar', f"""{row+i}_{m.get("uar")}""")
+            batch_if_valid(row+i, 'uar', f"""{row+i}_{m.get("name_prefix")}_{m.get("uar")}""")
 
-            timestamp = item.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
-            title = item.get("title")
-            filename = f"""{timestamp} EST {title}_{row+i}{ext}"""
+            # timestamp = item.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
+            # title = item.get("title")
+            # filename = f"""{timestamp} EST {title}_{row+i}{ext}"""
 
-            filename = m.clean_string(filename)
+            # filename = m.clean_string(filename)
 
-            batch_if_valid(row+i, 'uar', filename)
+            # batch_if_valid(row+i, 'uar', filename)
         
             downloaded_filename = os.path.basename(m.filename)
             codec_filename = None

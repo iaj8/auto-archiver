@@ -148,6 +148,7 @@ class ArchivingOrchestrator:
 
         gsheet = ArchivingContext.get("gsheet")
         for m in result.get_all_media():
+            m.set("name_prefix", gsheet.get("name_prefix"))
             m.set("row", gsheet.get("row"))
             m.set("uar", self.set_uar())
             m.set("title", result.get("title"))

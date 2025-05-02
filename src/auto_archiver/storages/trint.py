@@ -35,8 +35,8 @@ class TrintStorage(Storage):
                 "trint_api_url": {"default": "https://upload.trint.com/", "help": "The endpoint to upload files for Trint transcription"},
                 "trint_api_key": {"default": "bdd936526b797a6039da08877742ad7f025293ad", "help": "Trint API key"},
                 "language": {"default": "en", "help":"Language to transcribe videos/audios in"},
-                "workspace_id": {"default": "a2puGIurRwePjcMU-fALhA", "help": "The Trint workspace to upload files to for transcription"},
-                "folder_id": {"default": "-xTabsHcSTWViJt4BncSqA", "help": "The folder within the Trint workspace to upload files to for transcription"},
+                "workspace_id": {"default": "dlxkjmhkSHG_zE5ecKueAQ", "help": "The Trint workspace to upload files to for transcription"},
+                "folder_id": {"default": "ZLUzlqpvRSeRI7GJ-cXJIg", "help": "The folder within the Trint workspace to upload files to for transcription"},
             })
 
     def get_cdn_url(self, media: Media) -> str:
@@ -90,12 +90,14 @@ class TrintStorage(Storage):
         if "media" in media.get("id"):
             i = int(re.search(r'\d+', media.get("id")).group()) - 1
 
-            timestamp = media.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
-            title = media.get("title")
+            # timestamp = media.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
+            # title = media.get("title")
 
-            filename = f"""{timestamp} EST {title}_{media.get("row")+i}{ext}"""
+            # filename = f"""{timestamp} EST {title}_{media.get("row")+i}{ext}"""
             
-            filename = media.clean_string(filename)
+            # filename = media.clean_string(filename)
+            
+            filename = f"""{media.get("row")+i}_{media.get("name_prefix")}_{media.get("uar")}{ext}"""
 
         else:
 
