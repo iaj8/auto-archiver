@@ -8,6 +8,7 @@ from ..core import Media, ArchivingContext
 from ..storages import Storage
 from ..enrichers import HashEnricher
 from loguru import logger
+import re
 
 
 NO_DUPLICATES_FOLDER = "no-dups/"
@@ -72,6 +73,7 @@ class GCSStorage(Storage):
             # filename = media.key.replace("/", "_")
             filename = os.path.join("screenshots", f"""{media.get("row")}_{media.get("uar")}{ext}""")
         elif "media" in media.get("id", ""):
+            i = int(re.search(r'\d+', media.get("id")).group()) - 1
             # filename = media.key.replace("/", "_")
             if project_naming_convention == "only_uar":
                 filename = os.path.join("media", f"""{media.get("row")+i}_{media.get("uar")}{ext}""")
