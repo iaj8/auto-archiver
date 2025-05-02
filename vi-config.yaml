@@ -6,12 +6,12 @@ steps:
     - telethon_archiver
     - telegram_archiver
     # - twitter_archiver
-    - twitter_api_archiver
     # - instagram_api_archiver
     # - instagram_archiver
     - instagram_tbot_archiver
     - tiktok_archiver
     - youtubedl_archiver
+    - twitter_api_archiver
     # - wayback_archiver_enricher
     # - wacz_archiver_enricher
   enrichers:
