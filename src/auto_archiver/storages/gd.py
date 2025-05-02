@@ -79,24 +79,24 @@ class GDriveStorage(Storage):
 
         _, ext = os.path.splitext(media.key)
 
-        if "media" in media.get("id"):
-            i = int(re.search(r'\d+', media.get("id")).group()) - 1
-
-            timestamp = media.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
-            title = media.get("title")
-
-            now = f"""{datetime.now().astimezone(self.est).strftime("%Y-%m-%d")} EST"""
-
-            filename = f"""{timestamp} EST {title}_{media.get("row")+i}{ext}"""
-            
-            filename = media.clean_string(filename)
-
-            path_parts = [now, filename]
-
         # if "media" in media.get("id"):
         #     i = int(re.search(r'\d+', media.get("id")).group()) - 1
-        #     filename = f"""{media.get("row")+i}_{media.get("uar")}{ext}"""
-        #     path_parts = ["media", filename]
+
+        #     timestamp = media.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
+        #     title = media.get("title")
+
+        #     now = f"""{datetime.now().astimezone(self.est).strftime("%Y-%m-%d")} EST"""
+
+        #     filename = f"""{timestamp} EST {title}_{media.get("row")+i}{ext}"""
+            
+        #     filename = media.clean_string(filename)
+
+        #     path_parts = [now, filename]
+
+        if "media" in media.get("id"):
+            i = int(re.search(r'\d+', media.get("id")).group()) - 1
+            filename = f"""{media.get("row")+i}_{media.get("name_prefix")}_{media.get("uar")}{ext}"""
+            path_parts = ["media", filename]
 
         # if "media" in media.get("id"):
         #     i = int(re.search(r'\d+', media.get("id")).group()) - 1

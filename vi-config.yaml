@@ -6,12 +6,12 @@ steps:
     - telethon_archiver
     - telegram_archiver
     # - twitter_archiver
-    - twitter_api_archiver
     # - instagram_api_archiver
     - instagram_archiver
     - instagram_tbot_archiver
     - tiktok_archiver
     - youtubedl_archiver
+    - twitter_api_archiver
     # - wayback_archiver_enricher
     # - wacz_archiver_enricher
   enrichers:
@@ -24,7 +24,7 @@ steps:
     # - pdq_hash_enricher # if you want to calculate hashes for thumbnails, include this after thumbnail_enricher
   formatter: html_formatter # choose from mute_formatter, html_formatter, gsheet_formatter
   storages: # Location where media, metadata, and screenshots are stored
-    # - local_storage
+    - local_storage
     # - s3_storage
     - gdrive_storage_1
     # - gdrive_storage_2
@@ -60,6 +60,7 @@ configurations:
     use_sheet_names_in_stored_paths: false
     columns:
       uar: uar
+      name_prefix: subcategory
       url: link
       status: media number + archive status
       # folder: destination folder
@@ -77,6 +78,7 @@ configurations:
       screenshot: post screenshot link
       hash: hash
       codec_link: link for codec
+      send_to_trint: trint?
       trint_link: trint link
       # pdq_hash: perceptual hashes
       # wacz: wacz
@@ -145,7 +147,7 @@ configurations:
     profile: secrets/profile.tar.gz
 
   local_storage:
-    save_to: "/Users/ishaanjhaveri/Desktop/auto_archiver_test_local_archive"
+    save_to: "/media/filespace/VI/vi_drones/media"
     save_absolute: true
     filename_generator: static
     path_generator: flat
@@ -180,8 +182,8 @@ configurations:
     trint_api_url: https://upload.trint.com/
     trint_api_key: bdd936526b797a6039da08877742ad7f025293ad
     language: en
-    workspace_id": a2puGIurRwePjcMU-fALhA
-    folder_id: -xTabsHcSTWViJt4BncSqA
+    workspace_id": dlxkjmhkSHG_zE5ecKueAQ
+    folder_id: ZLUzlqpvRSeRI7GJ-cXJIg
 
   gdrive_storage_1:
     path_generator: url
