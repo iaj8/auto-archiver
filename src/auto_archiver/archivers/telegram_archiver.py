@@ -12,6 +12,8 @@ class TelegramArchiver(Archiver):
     """
     name = "telegram_archiver"
 
+    link_pattern = re.compile(r"https:\/\/t\.me(\/c){0,1}\/(.+)\/(\d+)")
+
     def __init__(self, config: dict) -> None:
         super().__init__(config)
 
@@ -24,6 +26,14 @@ class TelegramArchiver(Archiver):
         # detect URLs that we definitely cannot handle
         if 't.me' != item.netloc:
             return False
+        
+        match = self.link_pattern.search(url)
+
+        username = match.group(2)
+
+        credit_string = f"""{username} via Telegram"""
+
+        item.set("credit_string", credit_string)
 
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/81.0.4044.138 Safari/537.36'

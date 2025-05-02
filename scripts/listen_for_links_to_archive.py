@@ -13,6 +13,8 @@ import os
 import subprocess
 
 from sync_drive_and_gcs import rsync_gdrive_and_gcs
+from compute_story_local_timezone import compute_and_enter_story_local_timezone
+from duplicate_utils import flag_duplicates
 
 service_account_path = "../secrets/service_account.json"
 project_id = "vi-stg-a29a"
@@ -46,7 +48,7 @@ def callback(message):
     if job_id not in job_semaphores:
         job_semaphores[job_id] = {
             'run_auto_archiver': threading.Semaphore(1),
-            'rsync_gdrive_and_gcs': threading.Semaphore(1)
+            # 'rsync_gdrive_and_gcs': threading.Semaphore(1)
         }
 
     message_queue.put(message_dict)
@@ -74,8 +76,9 @@ def worker(worker_id, executor):
                 result = future.result()
                 print(f"Worker {worker_id}: auto-archiver complete, running sync")
                 
-            print(f"Worker {worker_id}: trying to acquire {job_id} sync semaphor")
-            with job_semaphores[job_id]['rsync_gdrive_and_gcs']:
+            # print(f"Worker {worker_id}: trying to acquire {job_id} sync semaphor")
+            # with job_semaphores[job_id]['rsync_gdrive_and_gcs']:
+            
                 top_level_drive_folder = message_dict["driveFolderId"]
                 top_level_gcs_folder = message_dict["projectName"]
                 sheet_id = message_dict['spreadsheetId']
@@ -109,10 +112,22 @@ def run_auto_archiver(message_dict):
     sheet_id = message_dict['spreadsheetId']
     root_folder_id = message_dict["driveFolderId"]
     project_name = message_dict["projectName"]
+    worksheet_name = message_dict['sheetName']
+
+    try:
+        compute_and_enter_story_local_timezone(service_account_path, sheet_id, worksheet_name)
+    except:
+        pass
     
     command = f"""cd .. && python -m src.auto_archiver --config vi-config.yaml  --gsheet_feeder.sheet_id "{sheet_id}" --gdrive_storage_1.root_folder_id "{root_folder_id}" --gdrive_storage_2.root_folder_id "{root_folder_id}" --project_name.value "{project_name}" --gcs_storage_1.top_level_folder "{project_name}" --gcs_storage_2.top_level_folder "{project_name}" """
     print(command)
     result = subprocess.run(command, shell=True, check=True)
+
+    try:
+        flag_duplicates(service_account_path, sheet_id, worksheet_name)
+    except:
+        pass
+
     return result
 
 

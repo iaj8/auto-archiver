@@ -33,3 +33,17 @@ class ProjectFormat(ProjectDetail):
         return {
             "value": {"default": "vi-gd-gcs-codec", "help": "Used to denote standard media storage configurations that the archiver can assume are the case"},
         }
+    
+class ProjectNamingConvention(ProjectDetail):
+    name = "project_naming_convention"
+
+    # options:
+    # only_uar
+    # prefix_and_uar
+    # date_title
+
+    @staticmethod
+    def configs() -> dict:
+        return {
+            "value": {"default": "only_uar", "help": "How media files in this project will be named"},
+        }

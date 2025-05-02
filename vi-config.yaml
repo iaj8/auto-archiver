@@ -7,7 +7,7 @@ steps:
     - telegram_archiver
     # - twitter_archiver
     # - instagram_api_archiver
-    - instagram_archiver
+    # - instagram_archiver
     - instagram_tbot_archiver
     - tiktok_archiver
     - youtubedl_archiver
@@ -16,6 +16,7 @@ steps:
     # - wacz_archiver_enricher
   enrichers:
     - hash_enricher
+    - duration_enricher
     - metadata_enricher
     - screenshot_enricher
     - thumbnail_enricher
@@ -44,12 +45,15 @@ steps:
   project_details: 
     - project_name
     - project_format
+    - project_naming_convention
 
 configurations:
   project_name:
     value: "noname"
   project_format:
     value: "vi-gd-gcs-codec"
+  project_naming_convention:
+    value: "only_uar"
   gsheet_feeder:
     # sheet: "your sheet name"
     # sheet_id: "1_87zjkMPWrbeM1pLFBhErqxFnGn2kJjMoSfBrpko_7c"
@@ -68,6 +72,7 @@ configurations:
       archived_filenames: archived file location(s)
       downloaded_filenames: original downloaded filename(s)
       date: archive date
+      duration: duration (hh:mm:ss.mmmmmm)
       thumbnail: media thumbnail
       timestamp: upload timestamp utc
       timestamp_est: upload timestamp est
@@ -80,6 +85,7 @@ configurations:
       codec_link: link for codec
       send_to_trint: trint?
       trint_link: trint link
+      credit_string: credit
       # pdq_hash: perceptual hashes
       # wacz: wacz
       # replaywebpage: replaywebpage
@@ -88,6 +94,7 @@ configurations:
     api_id: "24045990"
     api_hash: "7b17a3eaa7742009e4815cefa5476604"
     session_file: "secrets/anon-instabot"
+    timeout: 300
 
   telethon_archiver:
     api_id: "24045990"
@@ -125,7 +132,7 @@ configurations:
 
   youtubedl_archiver:
     netscape_cookies: "secrets/netscape_cookies.txt"
-    # facebook_cookie: "cookie: datr= a3X_ZKaP_rF7W17GeBc5aVJy"
+    facebook_cookie: "cookie: datr= a3X_ZKaP_rF7W17GeBc5aVJy"
 
   thumbnail_enricher:
     thumbnails_per_minute: 1

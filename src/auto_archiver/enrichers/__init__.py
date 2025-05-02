@@ -2,6 +2,7 @@ from .enricher import Enricher
 from .screenshot_enricher import ScreenshotEnricher 
 from .wayback_enricher import WaybackArchiverEnricher
 from .hash_enricher import HashEnricher
+from .duration_enricher import DurationEnricher
 from .thumbnail_enricher import ThumbnailEnricher
 from .wacz_enricher import WaczArchiverEnricher
 from .whisper_enricher import WhisperEnricher

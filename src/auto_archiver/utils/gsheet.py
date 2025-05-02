@@ -36,6 +36,7 @@ class Gsheets(Step):
                     'archived_filenames': 'archived file location(s)',
                     'downloaded_filenames': 'original downloaded filename(s)',
                     'date': 'archive date',
+                    'duration': 'duration (hh:mm:ss.mmmmmm)',
                     'thumbnail': 'media thumbnail',
                     'timestamp': 'upload timestamp utc',
                     'timestamp_est': 'upload timestamp est',
@@ -47,7 +48,8 @@ class Gsheets(Step):
                     'hash': 'hash',
                     'codec_link': 'link for codec',
                     'send_to_trint': 'trint?',
-                    'trint_link': 'trint link'
+                    'trint_link': 'trint link',
+                    'credit_string': 'credit'
                     # 'pdq_hash': 'perceptual hashes',
                     # 'wacz': 'wacz',
                     # 'replaywebpage': 'replaywebpage'

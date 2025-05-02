@@ -118,6 +118,12 @@ class TelethonArchiver(Archiver):
         logger.debug(f"TELETHON: {match=}")
         if not match: return False
 
+        username = match.group(2)
+
+        credit_string = f"""{username} via Telegram"""
+
+        item.set("credit_string", credit_string)
+
         is_private = match.group(1) == "/c"
         chat = int(match.group(2)) if is_private else match.group(2)
         post_id = int(match.group(3))
