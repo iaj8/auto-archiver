@@ -9,7 +9,7 @@ from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
-from ..core import Media
+from ..core import Media, ArchivingContext
 from . import Storage
 
 import re
@@ -87,17 +87,26 @@ class TrintStorage(Storage):
 
         _, ext = os.path.splitext(media.key)
 
+        project_naming_convention = None
+
+        for detail in ArchivingContext.get("project_details"):
+            if detail.name == "project_naming_convention":
+                project_naming_convention = detail.value
+
         if "media" in media.get("id"):
             i = int(re.search(r'\d+', media.get("id")).group()) - 1
 
-            # timestamp = media.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
-            # title = media.get("title")
+            if project_naming_convention == "only_uar":
+                filename = f"""{media.get("row")+i}_{media.get("uar")}{ext}"""
+            elif project_naming_convention == "prefix_and_uar":
+                filename = f"""{media.get("row")+i}_{media.get("name_prefix")}_{media.get("uar")}{ext}"""
+            elif project_naming_convention == "date_title":
+                timestamp = media.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
+                title = media.get("title")
 
-            # filename = f"""{timestamp} EST {title}_{media.get("row")+i}{ext}"""
-            
-            # filename = media.clean_string(filename)
-            
-            filename = f"""{media.get("row")+i}_{media.get("name_prefix")}_{media.get("uar")}{ext}"""
+                filename = f"""{timestamp} EST {title}_{media.get("row")+i}{ext}"""
+                
+                filename = media.clean_string(filename)
 
         else:
 

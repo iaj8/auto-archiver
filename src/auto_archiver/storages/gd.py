@@ -19,7 +19,7 @@ import pytz
 
 
 class GDriveStorage(Storage):
-    # name = "gdrive_storage"
+    name = "gdrive_storage"
     est = pytz.timezone('US/Eastern')
 
     def __init__(self, config: dict) -> None:
@@ -72,6 +72,7 @@ class GDriveStorage(Storage):
                 "root_folder_id": {"default": None, "help": "root google drive folder ID to use as storage, found in URL: 'https://drive.google.com/drive/folders/FOLDER_ID'"},
                 "oauth_token": {"default": None, "help": "JSON filename with Google Drive OAuth token: check auto-archiver repository scripts folder for create_update_gdrive_oauth_token.py. NOTE: storage used will count towards owner of GDrive folder, therefore it is best to use oauth_token_filename over service_account."},
                 "service_account": {"default": "secrets/service_account.json", "help": "service account JSON file path, same as used for Google Sheets. NOTE: storage used will count towards the developer account."},
+                "dated_subfolders": {"default": False, "help": "whether to nest the media within a dated subfolder"}
             })
     
     def get_path_parts(self, media: Media) -> list[str]:
@@ -79,32 +80,33 @@ class GDriveStorage(Storage):
 
         _, ext = os.path.splitext(media.key)
 
-        # if "media" in media.get("id"):
-        #     i = int(re.search(r'\d+', media.get("id")).group()) - 1
+        project_naming_convention = None
 
-        #     timestamp = media.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
-        #     title = media.get("title")
-
-        #     now = f"""{datetime.now().astimezone(self.est).strftime("%Y-%m-%d")} EST"""
-
-        #     filename = f"""{timestamp} EST {title}_{media.get("row")+i}{ext}"""
-            
-        #     filename = media.clean_string(filename)
-
-        #     path_parts = [now, filename]
+        for detail in ArchivingContext.get("project_details"):
+            if detail.name == "project_naming_convention":
+                project_naming_convention = detail.value
 
         if "media" in media.get("id"):
             i = int(re.search(r'\d+', media.get("id")).group()) - 1
-            for detail in ArchivingContext.get("project_details"):
-                print(detail.name, detail.value)
 
-            filename = f"""{media.get("row")+i}_{media.get("name_prefix")}_{media.get("uar")}{ext}"""
-            path_parts = ["media", filename]
+            if project_naming_convention == "only_uar":
+                filename = f"""{media.get("row")+i}_{media.get("uar")}{ext}"""
+            elif project_naming_convention == "prefix_and_uar":
+                filename = f"""{media.get("row")+i}_{media.get("name_prefix")}_{media.get("uar")}{ext}"""
+            elif project_naming_convention == "date_title":
+                timestamp = media.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
+                title = media.get("title")
 
-        # if "media" in media.get("id"):
-        #     i = int(re.search(r'\d+', media.get("id")).group()) - 1
-        #     filename = f"""{media.get("row")+i}_{media.get("uar")}{ext}"""
-        #     path_parts = ["media", filename]
+                now = f"""{datetime.now().astimezone(self.est).strftime("%Y-%m-%d")} EST"""
+
+                filename = f"""{timestamp} EST {title}_{media.get("row")+i}{ext}"""
+                
+                filename = media.clean_string(filename)
+
+            if self.dated_subfolders:
+                path_parts = [now, filename]
+            else:
+                path_parts = ["media", filename]
         # elif "screenshot" in media.get("id"):
             # filename = f"""{media.get("row")}_{media.get("uar")}{ext}"""
             # path_parts = ["screenshots", filename]
@@ -226,44 +228,3 @@ class GDriveStorage(Storage):
         }
         gd_folder = self.service.files().create(supportsAllDrives=True, body=file_metadata, fields='id').execute()
         return gd_folder.get('id')
-
-class GDriveStorage1(GDriveStorage, Storage):
-    name = "gdrive_storage_1"
-
-class GDriveStorage2(GDriveStorage, Storage):
-    name = "gdrive_storage_2"
-
-    def get_path_parts(self, media: Media) -> list[str]:
-        path_parts = []
-
-        _, ext = os.path.splitext(media.key)
-
-        if "media" in media.get("id"):
-            i = int(re.search(r'\d+', media.get("id")).group()) - 1
-
-            timestamp = media.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
-            title = media.get("title")
-
-            filename = f"""{timestamp} EST {title}_{media.get("row")+i}{ext}"""
-            
-            filename = media.clean_string(filename)
-
-            path_parts = ["Copied_Files_To_Trint", filename]
-
-        # if "media" in media.get("id"):
-        #     i = int(re.search(r'\d+', media.get("id")).group()) - 1
-        #     filename = f"""{media.get("row")+i}_{media.get("uar")}{ext}"""
-        #     path_parts = ["media", filename]
-
-        # if "media" in media.get("id"):
-        #     i = int(re.search(r'\d+', media.get("id")).group()) - 1
-        #     filename = f"""{media.get("row")+i}_{media.get("uar")}{ext}"""
-        #     path_parts = ["media", filename]
-        # elif "screenshot" in media.get("id"):
-            # filename = f"""{media.get("row")}_{media.get("uar")}{ext}"""
-            # path_parts = ["screenshots", filename]
-        # elif "html_metadata" in media.get("id"):
-        #     filename = f"""{media.get("row")}_{media.get("uar")}{ext}"""
-        #     path_parts = ["html_metadata", filename]
-        
-        return path_parts
