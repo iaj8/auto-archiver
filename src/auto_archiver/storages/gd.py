@@ -9,7 +9,7 @@ from google.oauth2 import service_account
 from google.oauth2.credentials import Credentials
 from google.auth.transport.requests import Request
 
-from ..core import Media
+from ..core import Media, ArchivingContext
 from . import Storage
 
 import re
@@ -95,6 +95,9 @@ class GDriveStorage(Storage):
 
         if "media" in media.get("id"):
             i = int(re.search(r'\d+', media.get("id")).group()) - 1
+            for detail in ArchivingContext.get("project_details"):
+                print(detail.name, detail.value)
+
             filename = f"""{media.get("row")+i}_{media.get("name_prefix")}_{media.get("uar")}{ext}"""
             path_parts = ["media", filename]
 

@@ -137,24 +137,34 @@ class GsheetsDb(Database):
 
             _, ext = os.path.splitext(m.key)
 
-            batch_if_valid(row+i, 'uar', f"""{row+i}_{m.get("name_prefix")}_{m.get("uar")}""")
+            if project_naming_convention == "only_uar":
+                batch_if_valid(row+i, 'uar', f"""{row+i}_{m.get("uar")}""")
+            elif project_naming_convention == "prefix_and_uar":
+                batch_if_valid(row+i, 'uar', f"""{row+i}_{m.get("name_prefix")}_{m.get("uar")}""")
+            elif project_naming_convention == "date_title":
+                timestamp = item.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
+                title = item.get("title")
+                filename = f"""{timestamp} EST {title}_{row+i}{ext}"""
 
-            # timestamp = item.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
-            # title = item.get("title")
-            # filename = f"""{timestamp} EST {title}_{row+i}{ext}"""
+                filename = m.clean_string(filename)
 
-            # filename = m.clean_string(filename)
-
-            # batch_if_valid(row+i, 'uar', filename)
+                batch_if_valid(row+i, 'uar', filename)
+            else:
+                print("NAMING CONVENTION ISSUE")
+            
+            batch_if_valid(row+i, 'credit_string', item.get("credit_string"))
         
             downloaded_filename = os.path.basename(m.filename)
             codec_filename = None
             project_format = None
             trint_link = None
+            project_naming_convention = None
 
             for detail in ArchivingContext.get("project_details"):
                 if detail.name == "project_format":
                     project_format = detail.value
+                if detail.name == "project_naming_convention":
+                    project_naming_convention = detail.value
 
             if project_format is None:
                 archived_filename = m.urls[0]
@@ -180,6 +190,8 @@ class GsheetsDb(Database):
             cell_updates.append((row+i, 'status', f"""{i+1}/{len(all_media)}: {status_message}"""))
 
             batch_if_valid(row+i, 'hash', m.get("hash", "not-calculated"))
+
+            batch_if_valid(row, 'duration', m.get("duration_str", ""))
 
             try:
                 # if hasattr(m, "thumbnails"): TODO: For some reason hasattr doesn't work here
@@ -213,6 +225,9 @@ class GsheetsDb(Database):
         if (browsertrix := item.get_media_by_id("browsertrix")):
             batch_if_valid(row, 'wacz', "\n".join(browsertrix.urls))
             batch_if_valid(row, 'replaywebpage', "\n".join([f'https://replayweb.page/?source={quote(wacz)}#view=pages&url={quote(item.get_url())}' for wacz in browsertrix.urls]))
+
+
+        batch_if_valid(row, 'credit_string', item.get("credit_string"))
 
         gw.batch_set_cell(cell_updates)
 
