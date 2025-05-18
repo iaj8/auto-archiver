@@ -29,6 +29,7 @@ class Gsheets(Step):
                 "default": {
                     'uar': 'uar',
                     'url': 'link',
+                    'name_prefix': 'subcategory',
                     'status': 'media number + archive status',
                     # 'folder': 'destination folder',
                     'archive': 'additional information',
@@ -46,6 +47,8 @@ class Gsheets(Step):
                     'screenshot': 'post screenshot link',
                     'hash': 'hash',
                     'codec_link': 'link for codec',
+                    'send_to_trint': 'trint?',
+                    'trint_link': 'trint link',
                     'credit_string': 'credit'
                     # 'pdq_hash': 'perceptual hashes',
                     # 'wacz': 'wacz',

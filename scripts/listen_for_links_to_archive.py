@@ -18,7 +18,7 @@ from duplicate_utils import flag_duplicates
 
 service_account_path = "../secrets/service_account.json"
 project_id = "vi-stg-a29a"
-subscription_id = "vi_worfklow_subscription"
+subscription_id = "vi_worfklow_subscription_trint_lucid_branch"
 gcs_bucket_name = 'vi_workflow'
 authenticated_url_prefix = f"https://storage.cloud.google.com/{gcs_bucket_name}"
 link_col = 'B'
