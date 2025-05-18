@@ -4,10 +4,11 @@ from google.cloud import storage
 import os
 
 from ..utils.misc import random_str
-from ..core import Media
+from ..core import Media, ArchivingContext
 from ..storages import Storage
 from ..enrichers import HashEnricher
 from loguru import logger
+import re
 
 
 NO_DUPLICATES_FOLDER = "no-dups/"
@@ -56,6 +57,12 @@ class GCSStorage(Storage):
         
         _, ext = os.path.splitext(media.key)
 
+        project_naming_convention = None
+
+        for detail in ArchivingContext.get("project_details"):
+            if detail.name == "project_naming_convention":
+                project_naming_convention = detail.value
+
         if "thumbnail" in media.get("id", ""):
             # filename = f"""{media.key[:media.key.rfind("/")]}_screenshots/{media.key[media.key.rfind("/")+1:]}"""
             filename = os.path.join("thumbnails", f"""{media.get("row")}_{media.get("uar")}_{media.get("id", "")}{ext}""")
@@ -66,8 +73,19 @@ class GCSStorage(Storage):
             # filename = media.key.replace("/", "_")
             filename = os.path.join("screenshots", f"""{media.get("row")}_{media.get("uar")}{ext}""")
         elif "media" in media.get("id", ""):
+            i = int(re.search(r'\d+', media.get("id")).group()) - 1
             # filename = media.key.replace("/", "_")
-            filename = os.path.join("media", f"""{media.get("row")}_{media.get("uar")}{ext}""")
+            if project_naming_convention == "only_uar":
+                filename = os.path.join("media", f"""{media.get("row")+i}_{media.get("uar")}{ext}""")
+            elif project_naming_convention == "prefix_and_uar":
+                filename = os.path.join("media", f"""{media.get("row")+i}_{media.get("name_prefix")}_{media.get("uar")}{ext}""")
+            elif project_naming_convention == "date_title":
+                timestamp = media.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
+                title = media.get("title")
+
+                filename = f"""{timestamp} EST {title}_{media.get("row")+i}{ext}"""
+                
+                filename = os.path.join("media", media.clean_string(filename))
 
         destination_blob_name = os.path.join(self.top_level_folder, filename)
         blob = self.bucket.blob(destination_blob_name)

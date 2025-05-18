@@ -14,6 +14,7 @@ from .context import ArchivingContext
 
 from loguru import logger
 
+import re
 from urllib.parse import urlparse
 
 
@@ -157,6 +158,36 @@ class Media:
                 return fsize > 20_000
             except: pass
         return True
+    
+    def clean_string(self, input_string):
+
+        input_string = input_string.strip()
+
+        # Remove emojis using regex pattern for unicode characters in emoji ranges
+        input_string = re.sub(r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF\U0001F700-\U0001F77F\U0001F780-\U0001F7FF\U0001F800-\U0001F8FF\U0001F900-\U0001F9FF\U0001FA00-\U0001FA6F\U0001FA70-\U0001FAFF\U00002702-\U000027B0\U000024C2-\U0001F251]', '', input_string)
+        # Remove emojis, including additional ones like ❗‼️⁉️
+        input_string = re.sub(
+            r'[\U0001F600-\U0001F64F\U0001F300-\U0001F5FF\U0001F680-\U0001F6FF'
+            r'\U0001F700-\U0001F77F\U0001F780-\U0001F7FF\U0001F800-\U0001F8FF'
+            r'\U0001F900-\U0001F9FF\U0001FA00-\U0001FA6F\U0001FA70-\U0001FAFF'
+            r'\U00002702-\U000027B0\U000024C2-\U0001F251'
+            r'\u203C\u2049\u2753-\u2755\u2757\u26A0\u26A1\u2B06-\u2B07\u2B50\u2B55]',
+            '',
+            input_string
+        )
+
+        input_string = input_string.replace("\u200d", "")
+
+        # Remove basic punctuation
+        input_string = re.sub(r'[!?,:;\'"{}\[\]@|•’‘#&™+]', '', input_string)
+
+        input_string = input_string.replace("…", "...")
+        input_string = input_string.replace("/", "_")
+        
+        # Replace spaces with underscores
+        input_string = input_string.replace(" ", "_")
+
+        return input_string
 
     @staticmethod
     def extract_full_domain(url):

@@ -4,8 +4,10 @@ from typing import IO
 import os
 from loguru import logger
 
-from ..core import Media
+from ..core import Media, ArchivingContext
 from ..storages import Storage
+
+import re
 
 
 class LocalStorage(Storage):
@@ -33,7 +35,28 @@ class LocalStorage(Storage):
 
     def upload(self, media: Media, **kwargs) -> bool:
         # override parent so that we can use shutil.copy2 and keep metadata
-        dest = os.path.join(self.save_to, media.key)
+        # dest = os.path.join(self.save_to, media.key)
+        _, ext = os.path.splitext(media.key)
+        i = int(re.search(r'\d+', media.get("id")).group()) - 1
+
+        for detail in ArchivingContext.get("project_details"):
+            if detail.name == "project_naming_convention":
+                project_naming_convention = detail.value
+
+        if project_naming_convention == "only_uar":
+            filename = f"""{media.get("row")+i}_{media.get("uar")}{ext}"""
+        elif project_naming_convention == "prefix_and_uar":
+            filename = f"""{media.get("row")+i}_{media.get("name_prefix")}_{media.get("uar")}{ext}"""
+        elif project_naming_convention == "date_title":
+            timestamp = media.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
+            title = media.get("title")
+
+            filename = f"""{timestamp} EST {title}_{media.get("row")+i}{ext}"""
+            
+            filename = media.clean_string(filename)
+
+        dest = os.path.join(self.save_to, filename)
+
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         logger.debug(f'[{self.__class__.name}] storing file {media.filename} with key {media.key} to {dest}')
         res = shutil.copy2(media.filename, dest)
