@@ -2,7 +2,7 @@ steps:
   # only 1 feeder allowed
   feeder: gsheet_feeder # defaults to cli_feeder
   archivers: # order matters, uncomment to activate
-    - vk_archiver
+    # - vk_archiver
     - telethon_archiver
     - telegram_archiver
     # - twitter_archiver
@@ -118,7 +118,7 @@ configurations:
     session_file: "secrets/instaloader.session"
 
   vk_archiver:
-    username: "+13478803642"
+    username: "+12128149882"
     password: "Igordimov109"
     session_file: "secrets/vk_config.v2.json"
 
