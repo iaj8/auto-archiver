@@ -92,14 +92,14 @@ def worker(worker_id, executor):
                 print("worksheet_name", worksheet_name)
                 print("authenticated_url_prefix", authenticated_url_prefix)
 
-                # future_2 = executor.submit(
-                #     rsync_gdrive_and_gcs, service_account_path, 
-                #     top_level_drive_folder, gcs_bucket_name, 
-                #     top_level_gcs_folder, sheet_id, worksheet_name, 
-                #     authenticated_url_prefix
-                # )
-                # result_2 = future_2.result()
-                # print(f"Worker {worker_id}: sync complete")
+                future_2 = executor.submit(
+                    rsync_gdrive_and_gcs, service_account_path, 
+                    top_level_drive_folder, gcs_bucket_name, 
+                    top_level_gcs_folder, sheet_id, worksheet_name, 
+                    authenticated_url_prefix
+                )
+                result_2 = future_2.result()
+                print(f"Worker {worker_id}: sync complete")
 
         except (KeyboardInterrupt, Exception) as e:
             print(f"Error during running of job {job_id}: {e}")
