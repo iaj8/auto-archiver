@@ -70,7 +70,10 @@ class GsheetsFeeder(Gsheets, Feeder):
                 # TODO: custom status parser(?) aka should_retry_from_status
                 if status not in ['', None]: continue
 
-                name_prefix = gw.get_cell(row, 'name_prefix', fresh=(row == gw.count_rows()))
+                try:
+                    name_prefix = gw.get_cell(row, 'name_prefix', fresh=(row == gw.count_rows()))
+                except ValueError:
+                    name_prefix = ""
 
                 # All checks done - archival process starts here
                 m = Metadata().set_url(url)
