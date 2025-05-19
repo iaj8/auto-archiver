@@ -54,10 +54,9 @@ class TrintStorage(Storage):
         workspace_id, folder_id = self.workspace_id, self.folder_id
         filename, mime_type = self.get_filename_and_mimetype(media)
 
-        # upload file to gd
-        logger.debug(f'uploading {filename=} to folder id {folder_id} in the Trint workspace with id {workspace_id} ')
-
         if "audio" in mime_type or "video" in mime_type:
+            # upload file to trint
+            logger.debug(f'uploading {filename=} to folder id {folder_id} in the Trint workspace with id {workspace_id} ')
             try:
                 headers = {
                     "accept": "application/json",
@@ -76,13 +75,14 @@ class TrintStorage(Storage):
                 response.raise_for_status()
                 response = response.json()
                 media.set("file_trint_id", response["trintId"])
+
+                logger.debug(f'uploadf: uploaded file {response["trintId"]} successfully in folder id {folder_id} in the Trint workspace with id {workspace_id} ')
             except requests.RequestException as e:
                 logger.debug(f"Error uploading to Trint: {e}")
             
         else:
+            logger.debug(f"Not a video or audio file, skipping Trint upload")
             media.set("file_trint_id", "Not a video or audio file")
-
-        logger.debug(f'uploadf: uploaded file {response["trintId"]} successfully in folder id {folder_id} in the Trint workspace with id {workspace_id} ')
 
     # must be implemented even if unused
     def uploadf(self, file: IO[bytes], key: str, **kwargs: dict) -> bool: pass
