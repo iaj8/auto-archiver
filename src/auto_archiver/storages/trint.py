@@ -57,26 +57,30 @@ class TrintStorage(Storage):
         # upload file to gd
         logger.debug(f'uploading {filename=} to folder id {folder_id} in the Trint workspace with id {workspace_id} ')
 
-        try:
-            headers = {
-                "accept": "application/json",
-                "api-key": self.trint_api_key,
-                "content-type": mime_type
-            }
-            params = {
-                "language": self.language,
-                "filename": filename,
-                "workspace-id": workspace_id,
-                "folder-id": folder_id,
-            }
+        if "audio" in mime_type or "video" in mime_type:
+            try:
+                headers = {
+                    "accept": "application/json",
+                    "api-key": self.trint_api_key,
+                    "content-type": mime_type
+                }
+                params = {
+                    "language": self.language,
+                    "filename": filename,
+                    "workspace-id": workspace_id,
+                    "folder-id": folder_id,
+                }
 
-            fh = open(media.filename, "rb")
-            response = requests.post(self.trint_api_url, headers=headers, params=params, data=fh)
-            response.raise_for_status()
-            response = response.json()
-            media.set("file_trint_id", response["trintId"])
-        except requests.RequestException as e:
-            logger.debug(f"Error uploading to Trint: {e}")
+                fh = open(media.filename, "rb")
+                response = requests.post(self.trint_api_url, headers=headers, params=params, data=fh)
+                response.raise_for_status()
+                response = response.json()
+                media.set("file_trint_id", response["trintId"])
+            except requests.RequestException as e:
+                logger.debug(f"Error uploading to Trint: {e}")
+            
+        else:
+            media.set("file_trint_id", "Not a video or audio file")
 
         logger.debug(f'uploadf: uploaded file {response["trintId"]} successfully in folder id {folder_id} in the Trint workspace with id {workspace_id} ')
 

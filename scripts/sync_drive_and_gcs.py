@@ -256,7 +256,7 @@ def rsync_gdrive_and_other_storages(service_account_path, top_level_drive_folder
         upload_file_to_gcs(client, gcs_bucket_name, os.path.join(top_level_gcs_folder, 'media', file_name), file_data, content_type)
 
         # Trint
-        if trint_storage:
+        if trint_storage and ("audio" in content_type or "video" in content_type):
             print(f'uploading {file_name=} to folder id {trint_folder} in the Trint workspace with id {trint_workspace} ')
             try:
                 trint_request_headers = {
