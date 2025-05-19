@@ -1,0 +1,154 @@
+configurations:
+  csv_db:
+    csv_file: ./local_archive/db.csv
+  gcs_storage_1:
+    bucket_name: vi_workflow
+    cdn_url: https://storage.cloud.google.com/{bucket_name}/{key}
+    scopes:
+    - https://www.googleapis.com/auth/cloud-platform
+    service_account: secrets/service_account.json
+  gcs_storage_2:
+    bucket_name: vi_workflow_thumbnails_only
+    cdn_url: https://storage.googleapis.com/{bucket_name}/{key}
+    scopes:
+    - https://www.googleapis.com/auth/cloud-platform
+    service_account: secrets/service_account.json
+  gdrive_storage:
+    dated_subfolders: false
+    filename_generator: static
+    oauth_token: secrets/gd-token.json
+    path_generator: url
+    service_account: secrets/service_account.json
+  gsheet_db:
+    service_account: secrets/service_account.json
+  gsheet_feeder:
+    columns:
+      archive: additional information
+      archived_filenames: archived file location(s)
+      codec_link: link for codec
+      credit_string: credit
+      date: archive date
+      downloaded_filenames: original downloaded filename(s)
+      duration: duration (hh:mm:ss.mmmmmm)
+      hash: hash
+      name_prefix: subcategory
+      screenshot: post screenshot link
+      send_to_trint: trint?
+      status: media number + archive status
+      text: text of post
+      text_translated: text of post translated
+      thumbnail: media thumbnail
+      timestamp: upload timestamp utc
+      timestamp_est: upload timestamp est
+      title: upload title
+      title_translated: upload title translated
+      trint_link: trint link
+      uar: uar
+      url: link
+    header: 1
+    service_account: secrets/service_account.json
+    use_sheet_names_in_stored_paths: false
+  hash_enricher:
+    algorithm: SHA3-512
+  instagram_archiver:
+    password: Igordimov109
+    session_file: secrets/instaloader.session
+    username: jhaveriishaan94
+  instagram_tbot_archiver:
+    api_hash: 7b17a3eaa7742009e4815cefa5476604
+    api_id: '24045990'
+    session_file: secrets/anon-instabot
+    timeout: 300
+  local_storage:
+    filename_generator: static
+    path_generator: flat
+    save_absolute: true
+    save_to: path_here
+  project_format:
+    value: vi-gd-gcs-codec
+  project_name:
+    value: noname
+  project_naming_convention:
+    value: prefix_and_uar
+  s3_storage:
+    bucket: your-bucket-name
+    cdn_url: https://{bucket}.{region}.cdn.digitaloceanspaces.com/{key}
+    endpoint_url: https://{region}.digitaloceanspaces.com
+    key: S3_KEY
+    key_path: random
+    private: false
+    region: reg1
+    secret: S3_SECRET
+  screenshot_enricher:
+    height: 1280
+    width: 1280
+  telethon_archiver:
+    api_hash: 7b17a3eaa7742009e4815cefa5476604
+    api_id: '24045990'
+    channel_invites:
+    - id: 1
+      invite: https://t.me/+123456789
+    - id: 2
+      invite: https://t.me/+123456788
+    join_channels: false
+    session_file: secrets/anon-telethon
+  thumbnail_enricher:
+    max_thumbnails: 1
+    thumbnails_per_minute: 1
+  trint_storage:
+    folder_id: id_here
+    language: en
+    trint_api_key: bdd936526b797a6039da08877742ad7f025293ad
+    trint_api_url: https://upload.trint.com/
+    workspace_id: id_here
+  twitter_api_archiver:
+    bearer_token: AAAAAAAAAAAAAAAAAAAAADjc0wEAAAAA8xoFsjcCk5cNLrYYslydrXf84O8%3DZ0VrQ1XAp3Cbdm4xnxrBJXw5OV2gyJ7biZoGWuRYjH84n1GUlD
+    netscape_cookies: secrets/netscape_cookies.txt
+  twitter_archiver:
+    netscape_cookies: secrets/netscape_cookies.txt
+  vk_archiver:
+    password: Igordimov109
+    session_file: secrets/vk_config.v2.json
+    username: '+12128149882'
+  wacz_archiver_enricher:
+    profile: secrets/profile.tar.gz
+  wayback_archiver_enricher:
+    key: wayback key
+    secret: wayback secret
+    timeout: 10
+  youtubedl_archiver:
+    facebook_cookie: 'cookie: datr= a3X_ZKaP_rF7W17GeBc5aVJy'
+    netscape_cookies: secrets/netscape_cookies.txt
+steps:
+  archivers:
+  - telethon_archiver
+  - telegram_archiver
+  - instagram_tbot_archiver
+  - tiktok_archiver
+  - youtubedl_archiver
+  - twitter_api_archiver
+  databases:
+  - gsheet_db
+  enrichers:
+  - hash_enricher
+  - duration_enricher
+  - metadata_enricher
+  - screenshot_enricher
+  - thumbnail_enricher
+  feeder: gsheet_feeder
+  formatter: html_formatter
+  html_metadata_storages:
+  - gcs_storage_1
+  project_details:
+  - project_name
+  - project_format
+  - project_naming_convention
+  screenshot_storages:
+  - gcs_storage_1
+  storages:
+  - gdrive_storage
+  - gcs_storage_1
+  - trint_storage
+  - local_storage
+  thumbnail_storages:
+  - gcs_storage_2

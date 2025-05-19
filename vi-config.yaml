@@ -25,10 +25,10 @@ steps:
     # - pdq_hash_enricher # if you want to calculate hashes for thumbnails, include this after thumbnail_enricher
   formatter: html_formatter # choose from mute_formatter, html_formatter, gsheet_formatter
   storages: # Location where media, metadata, and screenshots are stored
-    - local_storage
+    # - local_storage
     # - s3_storage
     - gdrive_storage
-    - trint_storage
+    # - trint_storage
     - gcs_storage_1
   thumbnail_storages: # Location thumbnails are stored
     - gcs_storage_2
@@ -53,6 +53,8 @@ configurations:
     value: "vi-gd-gcs-codec"
   project_naming_convention:
     value: "prefix_and_uar"
+    # value: "date_title"
+    # value: "only_uar"
   gsheet_feeder:
     # sheet: "your sheet name"
     # sheet_id: "1_87zjkMPWrbeM1pLFBhErqxFnGn2kJjMoSfBrpko_7c"
@@ -153,7 +155,7 @@ configurations:
     profile: secrets/profile.tar.gz
 
   local_storage:
-    save_to: "/media/filespace/VI/vi_drones/media"
+    save_to: "path_here"
     save_absolute: true
     filename_generator: static
     path_generator: flat
@@ -188,8 +190,8 @@ configurations:
     trint_api_url: https://upload.trint.com/
     trint_api_key: bdd936526b797a6039da08877742ad7f025293ad
     language: en
-    workspace_id": dlxkjmhkSHG_zE5ecKueAQ
-    folder_id: ZLUzlqpvRSeRI7GJ-cXJIg
+    workspace_id: id_here
+    folder_id: id_here
 
   gdrive_storage:
     path_generator: url
