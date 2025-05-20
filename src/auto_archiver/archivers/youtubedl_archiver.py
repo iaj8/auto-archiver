@@ -64,8 +64,11 @@ class YoutubeDLArchiver(Archiver):
                 logger.warning("Livestream detected, skipping due to 'livestreams' configuration setting")
                 return False
             audio_only = True
-            for media_format in info['formats']:
-                audio_only &= media_format['resolution'] is not None and "audio only" in media_format['resolution']
+            if 'formats' in info:    
+                for media_format in info['formats']:
+                    audio_only &= media_format['resolution'] is not None and "audio only" in media_format['resolution']
+            else:
+                audio_only = False
 
             if audio_only:
                 ydl_options["format"] = "ba"
