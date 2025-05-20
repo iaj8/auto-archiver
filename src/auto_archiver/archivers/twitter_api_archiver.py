@@ -69,7 +69,7 @@ class TwitterApiArchiver(TwitterArchiver, Archiver):
         item.set("credit_string", credit_string)
 
         try:
-            sleep(20)
+            # maybe put in some sleep logic here?
             tweet = self.api_client.get_tweet(tweet_id, expansions=["attachments.media_keys"], media_fields=["type", "duration_ms", "url", "variants"], tweet_fields=["attachments", "author_id", "created_at", "entities", "id", "text", "possibly_sensitive"])
             logger.debug(tweet)
         except Exception as e:
