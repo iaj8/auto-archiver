@@ -12,20 +12,21 @@ import time
 import os
 import subprocess
 
-from sync_drive_and_gcs import rsync_gdrive_and_gcs
+from sync_drive_and_gcs import rsync_gdrive_and_other_storages
 from compute_story_local_timezone import compute_and_enter_story_local_timezone
 from duplicate_utils import flag_duplicates
+import sys
+import yaml
 
 service_account_path = "../secrets/service_account.json"
 project_id = "vi-stg-a29a"
-subscription_id = "vi_worfklow_subscription"
+
 gcs_bucket_name = 'vi_workflow'
 authenticated_url_prefix = f"https://storage.cloud.google.com/{gcs_bucket_name}"
 link_col = 'B'
 
 credentials = service_account.Credentials.from_service_account_file(service_account_path)
 subscriber = pubsub_v1.SubscriberClient(credentials=credentials)
-subscription_path = subscriber.subscription_path(project_id, subscription_id)
 
 message_queue = Queue()
 job_semaphores = {}
@@ -83,6 +84,12 @@ def worker(worker_id, executor):
                 top_level_gcs_folder = message_dict["projectName"]
                 sheet_id = message_dict['spreadsheetId']
                 worksheet_name = message_dict['sheetName']
+                project_name = message_dict["projectName"]
+                
+                lucid_storage = "Yes" in message_dict["saveToLucid"] if "saveToLucid" in message_dict else False
+                trint_storage = "Yes" in message_dict["sendToTrint"] if "sendToTrint" in message_dict else False
+                trint_workspace = message_dict["trintWorkspaceId"] if "trintWorkspaceId" in message_dict else ""
+                trint_folder = message_dict["trintFolderId"] if "trintFolderId" in message_dict else ""
 
                 print("service_account_path", service_account_path)
                 print("top_level_drive_folder", top_level_drive_folder)
@@ -91,12 +98,18 @@ def worker(worker_id, executor):
                 print("sheet_id", sheet_id)
                 print("worksheet_name", worksheet_name)
                 print("authenticated_url_prefix", authenticated_url_prefix)
+                print("project_name", project_name)
+                print("lucid_storage", lucid_storage)
+                print("trint_storage", trint_storage)
+                print("trint_workspace", trint_workspace)
+                print("trint_folder", trint_folder)
 
                 future_2 = executor.submit(
-                    rsync_gdrive_and_gcs, service_account_path, 
+                    rsync_gdrive_and_other_storages, service_account_path, 
                     top_level_drive_folder, gcs_bucket_name, 
                     top_level_gcs_folder, sheet_id, worksheet_name, 
-                    authenticated_url_prefix
+                    authenticated_url_prefix, project_name, lucid_storage,
+                    trint_storage, trint_workspace, trint_folder
                 )
                 result_2 = future_2.result()
                 print(f"Worker {worker_id}: sync complete")
@@ -109,17 +122,65 @@ def worker(worker_id, executor):
             message_queue.task_done()
 
 def run_auto_archiver(message_dict):
+    # from pprint import pprint
+    # pprint(message_dict)
+    # return
     sheet_id = message_dict['spreadsheetId']
     root_folder_id = message_dict["driveFolderId"]
     project_name = message_dict["projectName"]
     worksheet_name = message_dict['sheetName']
 
+    naming_convention = message_dict["mediaNamingConvention"] if "mediaNamingConvention" in message_dict else "only_uar"
+    lucid_storage = "Yes" in message_dict["saveToLucid"] if "saveToLucid" in message_dict else False
+    trint_storage = "Yes" in message_dict["sendToTrint"] if "sendToTrint" in message_dict else False
+    trint_workspace = message_dict["trintWorkspaceId"] if "trintWorkspaceId" in message_dict else ""
+    trint_folder = message_dict["trintFolderId"] if "trintFolderId" in message_dict else ""
+
     try:
         compute_and_enter_story_local_timezone(service_account_path, sheet_id, worksheet_name)
     except:
         pass
+
+    # Overwrite the config file with the storages for this project
     
-    command = f"""cd .. && python -m src.auto_archiver --config vi-config.yaml  --gsheet_feeder.sheet_id "{sheet_id}" --gdrive_storage.root_folder_id "{root_folder_id}" --project_name.value "{project_name}" --gcs_storage_1.top_level_folder "{project_name}" --gcs_storage_2.top_level_folder "{project_name}" """
+    with open("../vi-config.yaml", "r") as f:
+        config = yaml.safe_load(f)
+    
+    existing_storages = config.get("steps", {}).get("storages", [])
+
+    if not lucid_storage and "local_storage" in existing_storages:
+        existing_storages.remove("local_storage")
+    if not trint_storage and "trint_storage" in existing_storages:
+        existing_storages.remove("trint_storage")
+
+    if lucid_storage:
+        existing_storages.append("local_storage")
+
+    if trint_storage:
+        existing_storages.append("trint_storage")
+
+    existing_storages = list(set(existing_storages))
+    
+    config.setdefault("steps", {})["storages"] = existing_storages
+    
+    with open("../vi-config-generated.yaml", "w") as f:
+        yaml.dump(config, f, default_flow_style=False)
+
+    command = f"""cd .. && python -m src.auto_archiver"""
+    command += f' --config vi-config-generated.yaml'
+    command += f' --gsheet_feeder.sheet_id "{sheet_id}"'
+    command += f' --gdrive_storage.root_folder_id "{root_folder_id}"'
+    command += f' --project_name.value "{project_name}"'
+    command += f' --project_naming_convention.value "{naming_convention}"'
+    command += f' --gcs_storage_1.top_level_folder "{project_name}"'
+    command += f' --gcs_storage_2.top_level_folder "{project_name}"'
+
+    if lucid_storage:
+        command += f' --local_storage.save_to "/media/filespace/VI/{project_name}/media"'
+    if trint_storage:
+        command += f' --trint_storage.workspace_id "{trint_workspace}"'
+        command += f' --trint_storage.folder_id "{trint_folder}"'
+
     print(command)
     result = subprocess.run(command, shell=True, check=True)
 
@@ -130,6 +191,8 @@ def run_auto_archiver(message_dict):
 
     return result
 
+subscription_id = sys.argv[1] #"vi_worfklow_subscription"
+subscription_path = subscriber.subscription_path(project_id, subscription_id)
 
 executor = ThreadPoolExecutor(max_workers=max_workers)
 

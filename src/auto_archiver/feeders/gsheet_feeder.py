@@ -70,9 +70,14 @@ class GsheetsFeeder(Gsheets, Feeder):
                 # TODO: custom status parser(?) aka should_retry_from_status
                 if status not in ['', None]: continue
 
+                try:
+                    name_prefix = gw.get_cell(row, 'name_prefix', fresh=(row == gw.count_rows()))
+                except ValueError:
+                    name_prefix = ""
+
                 # All checks done - archival process starts here
                 m = Metadata().set_url(url)
-                ArchivingContext.set("gsheet", {"row": row, "worksheet": gw}, keep_on_reset=True)
+                ArchivingContext.set("gsheet", {"name_prefix": name_prefix, "row": row, "worksheet": gw}, keep_on_reset=True)
                 if gw.get_cell_or_default(row, 'folder', "") is None:
                     folder = ''
                 else:

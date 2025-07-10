@@ -20,6 +20,8 @@ vk_config*.json
 gd-token.json
 credentials.json
 secrets*
+vi-config.yaml
+vi-config-generated.yaml
 browsertrix/*
 browsertrix-tmp/*
 instaloader/*
@@ -30,3 +32,5 @@ logs*
 *.csv
 archived/
 Icon*
+*Icon*
+*Icon

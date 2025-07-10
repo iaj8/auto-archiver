@@ -1,5 +1,6 @@
 from typing import Union, Tuple
 from datetime import datetime, timedelta, timezone
+import pytz
 from urllib.parse import quote
 
 from loguru import logger
@@ -22,6 +23,7 @@ class GsheetsDb(Database):
         could be updated in the future to support non-GsheetFeeder metadata 
     """
     name = "gsheet_db"
+    est = pytz.timezone('US/Eastern')
 
     def __init__(self, config: dict) -> None:
         # without this STEP.__init__ is not called
@@ -128,21 +130,42 @@ class GsheetsDb(Database):
 
         for m in all_media:
             m: Media
+
+            downloaded_filename = os.path.basename(m.filename)
+            codec_filename = None
+            project_format = None
+            trint_link = None
+            project_naming_convention = None
+
+            for detail in ArchivingContext.get("project_details"):
+                if detail.name == "project_format":
+                    project_format = detail.value
+                if detail.name == "project_naming_convention":
+                    project_naming_convention = detail.value
+
             if pdq := m.get("pdq_hash"):
                 pdq_hashes.append(pdq)
 
             i = int(re.search(r'\d+', m.get("id")).group()) - 1
 
-            batch_if_valid(row+i, 'uar', f"""{row+i}_{m.get("uar")}""")
+            _, ext = os.path.splitext(m.key)
+
+            if project_naming_convention == "only_uar":
+                batch_if_valid(row+i, 'uar', f"""{row+i}_{m.get("uar")}""")
+            elif project_naming_convention == "prefix_and_uar":
+                batch_if_valid(row+i, 'uar', f"""{row+i}_{m.get("name_prefix")}_{m.get("uar")}""")
+            elif project_naming_convention == "date_title":
+                timestamp = item.get("timestamp").astimezone(self.est).strftime("%Y-%m-%d")
+                title = item.get("title")
+                filename = f"""{timestamp} EST {title}_{row+i}{ext}"""
+
+                filename = m.clean_string(filename)
+
+                batch_if_valid(row+i, 'uar', filename)
+            else:
+                print("NAMING CONVENTION ISSUE")
             
             batch_if_valid(row+i, 'credit_string', item.get("credit_string"))
-        
-            downloaded_filename = os.path.basename(m.filename)
-            codec_filename = None
-            project_format = None
-            for detail in ArchivingContext.get("project_details"):
-                if detail.name == "project_format":
-                    project_format = detail.value
 
             if project_format is None:
                 archived_filename = m.urls[0]
@@ -152,9 +175,14 @@ class GsheetsDb(Database):
                         archived_filename = u
                     if "storage.cloud.google" in u:
                         codec_filename = u
+                    if "app.trint.com" in u:
+                        trint_link = u
                     
             if codec_filename is not None:
                 batch_if_valid(row+i, 'codec_link', codec_filename)
+
+            if trint_link is not None:
+                batch_if_valid(row+i, 'trint_link', trint_link)
 
             batch_if_valid(row+i, 'downloaded_filenames', downloaded_filename)
             batch_if_valid(row+i, 'archived_filenames', archived_filename)

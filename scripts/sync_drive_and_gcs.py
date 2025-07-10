@@ -22,6 +22,9 @@ import string
 import ffmpeg
 import hashlib
 from time import sleep
+import yaml
+import requests
+import shutil
 
 RETRY_POLICY = retry.Retry(deadline=1200)
 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -68,33 +71,29 @@ def get_media_duration_and_sha3_512(uar, file_data, content_type, get_hash=True)
     temp_filename = f"""{uar}.{content_type[content_type.find("/")+1:]}"""
     with open(temp_filename, 'wb') as temp_file:
         temp_file.write(file_data.read())
+
+    try:
+        probe = ffmpeg.probe(temp_filename)
+        duration = float(probe['format']['duration'])
+        duration = f"""{str(timedelta(seconds=duration))}"""
+
+    except Exception as e:
+        print("ERROR", e)
+        duration = ''
     
     try:
-        try:
-            probe = ffmpeg.probe(temp_filename)
-            duration = float(probe['format']['duration'])
-            duration = f"""{str(timedelta(seconds=duration))}"""
-
-        except Exception as e:
-            print("ERROR", e)
-            duration = ''
-        
-        try:
-            if get_hash:
-                sha3_512_hash = hashlib.sha3_512()
-                with open(temp_filename, 'rb') as f:
-                    while chunk := f.read(8192):
-                        sha3_512_hash.update(chunk)
-                sha3_512_checksum = f"""SHA3-512:{sha3_512_hash.hexdigest()}"""
-            else:
-                sha3_512_checksum = None
-        except Exception:
+        if get_hash:
+            sha3_512_hash = hashlib.sha3_512()
+            with open(temp_filename, 'rb') as f:
+                while chunk := f.read(8192):
+                    sha3_512_hash.update(chunk)
+            sha3_512_checksum = f"""SHA3-512:{sha3_512_hash.hexdigest()}"""
+        else:
             sha3_512_checksum = None
-
-    finally:
-        os.remove(temp_filename)
+    except Exception:
+        sha3_512_checksum = None
     
-    return duration, sha3_512_checksum
+    return duration, sha3_512_checksum, temp_filename
 
 
 def list_files_in_gcs_bucket(client, bucket_name, folder_path):
@@ -120,9 +119,12 @@ def upload_file_to_gcs(client, bucket_name, blob_name, file_data, content_type):
     blob.upload_from_file(file_data, content_type=content_type, timeout=1200, rewind=True, retry=RETRY_POLICY)
 
 
-def rsync_gdrive_and_gcs(service_account_path, top_level_drive_folder, gcs_bucket_name, top_level_gcs_folder, sheet_id, worksheet_name, authenticated_url_prefix, is_shared_drive=True):
+def rsync_gdrive_and_other_storages(service_account_path, top_level_drive_folder, gcs_bucket_name, top_level_gcs_folder, sheet_id, worksheet_name, authenticated_url_prefix, project_name, lucid_storage, trint_storage, trint_workspace, trint_folder, is_shared_drive=True):
     creds = service_account.Credentials.from_service_account_file(service_account_path, scopes=SCOPES)
     service = build('drive', 'v3', credentials=creds)
+
+    with open("../vi-config.yaml", "r") as f:
+        config = yaml.safe_load(f)
     
     gsheet_client = gspread.authorize(creds)
     spreadsheet = gsheet_client.open_by_key(sheet_id)
@@ -206,7 +208,7 @@ def rsync_gdrive_and_gcs(service_account_path, top_level_drive_folder, gcs_bucke
 
             updated_file = service.files().update(**query_params).execute()
             file_gdrive_link = f"""https://drive.google.com/file/d/{file_id}/view?usp=sharing"""
-            duration, sha3_512_checksum = get_media_duration_and_sha3_512(uar, file_data, files_to_transfer[file_name]['mimeType'])
+            duration, sha3_512_checksum, temp_filename = get_media_duration_and_sha3_512(uar, file_data, files_to_transfer[file_name]['mimeType'])
 
             thumbnail_link = files_to_transfer[file_name]['thumbnailLink']
             if thumbnail_link is None:
@@ -239,9 +241,8 @@ def rsync_gdrive_and_gcs(service_account_path, top_level_drive_folder, gcs_bucke
                 "backgroundColor": MANUAL_UPL_HIGHLIGHT_COLOR
             })
 
-            upload_file_to_gcs(client, gcs_bucket_name, os.path.join(top_level_gcs_folder, 'media', file_name), file_data, content_type)
         else:
-            duration, _ = get_media_duration_and_sha3_512(os.path.splitext(file_name)[0], file_data, files_to_transfer[file_name]['mimeType'], get_hash=False)
+            duration, _, temp_filename = get_media_duration_and_sha3_512(os.path.splitext(file_name)[0], file_data, files_to_transfer[file_name]['mimeType'], get_hash=False)
 
         
         ranges_and_values.append({"range": f"""{gspread.utils.rowcol_to_a1(row+1, headers.index("Duration (HH:MM:SS.mmmmmm)")+1)}""", 
@@ -252,7 +253,53 @@ def rsync_gdrive_and_gcs(service_account_path, top_level_drive_folder, gcs_bucke
                                   "values": [[f"""{authenticated_url_prefix}/{top_level_gcs_folder}/media/{file_name}"""]]
                                  })
         
-        print(datetime.now(), f"Transferred {file_name}")
+        upload_file_to_gcs(client, gcs_bucket_name, os.path.join(top_level_gcs_folder, 'media', file_name), file_data, content_type)
+
+        # Trint
+        if trint_storage and ("audio" in content_type or "video" in content_type):
+            print(f'uploading {file_name=} to folder id {trint_folder} in the Trint workspace with id {trint_workspace} ')
+            try:
+                trint_request_headers = {
+                    "accept": "application/json",
+                    "api-key": config.get("configurations", {}).get("trint_storage", {}).get("trint_api_key", ""),
+                    "content-type": content_type
+                }
+                params = {
+                    "language": config.get("configurations", {}).get("trint_storage", {}).get("language", ""),
+                    "filename": file_name,
+                    "workspace-id": trint_workspace,
+                    "folder-id": trint_folder,
+                }
+
+                trint_api_url = config.get("configurations", {}).get("trint_storage", {}).get("trint_api_url", "")
+                response = requests.post(trint_api_url, headers=trint_request_headers, params=params, data=open(temp_filename, "rb"))
+                response.raise_for_status()
+                response = response.json()
+            except requests.RequestException as e:
+                print(f"Error uploading to Trint: {e}")
+
+            print(f'uploadf: uploaded file {response["trintId"]} successfully in folder id {trint_folder} in the Trint workspace with id {trint_workspace} ')
+
+            ranges_and_values.append({"range": f"""{gspread.utils.rowcol_to_a1(row+1, headers.index("Trint Link")+1)}""", 
+                                    "values": [[f"""https://app.trint.com/editor/{response["trintId"]}"""]]
+                                    })
+
+        # Lucid
+        if lucid_storage:
+            try:
+                print(f'Copying {file_name=} to Lucid folder "/media/filespace/VI/{project_name}/media" ')
+                lucid_dir = f"""/media/filespace/VI/{project_name}/media/"""
+                os.makedirs(lucid_dir, exist_ok=True)
+                src_file_name = temp_filename
+                dst_file_name = os.path.join(lucid_dir, file_name)
+                shutil.copy2(src_file_name, dst_file_name)
+                print(f'Copied {file_name=} to Lucid succesfully ')
+
+            except Exception as e:
+                print("ERROR", e)
+
+        print(datetime.now(), f"Transferred {file_name}, deleting the temp file {temp_filename}")
+        os.remove(temp_filename)
 
     while True:
         try:
@@ -263,14 +310,14 @@ def rsync_gdrive_and_gcs(service_account_path, top_level_drive_folder, gcs_bucke
 
     print(datetime.now(), f"Updated spreadsheet")
 
-service_account_path = "../secrets/service_account.json"
-top_level_drive_folder = "153ITZjrC4InICxO2F1i_USYkUFkNBBrD"
-gcs_bucket_name = "vi_workflow"
-top_level_gcs_folder = "vi_workflow_tests_part_3"
-sheet_id = "1AOjaCHgKUUmIl_KaJvAIjD9NhMnNMj25Fs_ubWI0x1Q"
-worksheet_name = "Media"
+# service_account_path = "../secrets/service_account.json"
+# top_level_drive_folder = "153ITZjrC4InICxO2F1i_USYkUFkNBBrD"
+# gcs_bucket_name = "vi_workflow"
+# top_level_gcs_folder = "vi_workflow_tests_part_3"
+# sheet_id = "1AOjaCHgKUUmIl_KaJvAIjD9NhMnNMj25Fs_ubWI0x1Q"
+# worksheet_name = "Media"
 
-authenticated_url_prefix = f"https://storage.cloud.google.com/{gcs_bucket_name}"
-authenticated_url_prefix = f"https://storage.cloud.google.com/{gcs_bucket_name}"
+# authenticated_url_prefix = f"https://storage.cloud.google.com/{gcs_bucket_name}"
+# authenticated_url_prefix = f"https://storage.cloud.google.com/{gcs_bucket_name}"
 
-rsync_gdrive_and_gcs(service_account_path, top_level_drive_folder, gcs_bucket_name, top_level_gcs_folder, sheet_id, worksheet_name, authenticated_url_prefix)
+# rsync_gdrive_and_gcs(service_account_path, top_level_drive_folder, gcs_bucket_name, top_level_gcs_folder, sheet_id, worksheet_name, authenticated_url_prefix)

@@ -1,0 +1,208 @@
+steps:
+  # only 1 feeder allowed
+  feeder: gsheet_feeder # defaults to cli_feeder
+  archivers: # order matters, uncomment to activate
+    # - vk_archiver
+    - telethon_archiver
+    - telegram_archiver
+    # - twitter_archiver
+    # - instagram_api_archiver
+    # - instagram_archiver
+    - instagram_tbot_archiver
+    - tiktok_archiver
+    - youtubedl_archiver
+    - twitter_api_archiver
+    # - wayback_archiver_enricher
+    # - wacz_archiver_enricher
+  enrichers:
+    - hash_enricher
+    - duration_enricher
+    - metadata_enricher
+    - screenshot_enricher
+    - thumbnail_enricher
+    # - wayback_archiver_enricher
+    # - wacz_archiver_enricher
+    # - pdq_hash_enricher # if you want to calculate hashes for thumbnails, include this after thumbnail_enricher
+  formatter: html_formatter # choose from mute_formatter, html_formatter, gsheet_formatter
+  storages: # Location where media, metadata, and screenshots are stored
+    # - local_storage
+    # - s3_storage
+    - gdrive_storage
+    # - trint_storage
+    - gcs_storage_1
+  thumbnail_storages: # Location thumbnails are stored
+    - gcs_storage_2
+  html_metadata_storages: # Location html metadata files are stored
+    - gcs_storage_1
+  screenshot_storages: # Location post screenshots are stored
+    - gcs_storage_1
+  databases:
+    # - console_db
+    # - csv_db
+    - gsheet_db
+    # - mongo_db
+  project_details: 
+    - project_name
+    - project_format
+    - project_naming_convention
+
+configurations:
+  project_name:
+    value: "noname"
+  project_format:
+    value: "vi-gd-gcs-codec"
+  project_naming_convention:
+    value: "prefix_and_uar"
+    # value: "date_title"
+    # value: "only_uar"
+  gsheet_feeder:
+    # sheet: "your sheet name"
+    # sheet_id: "your sheet id"
+    header: 1
+    service_account: "secrets/service_account.json"
+    # allow_worksheets: "only parse this worksheet"
+    # block_worksheets: "blocked sheet 1,blocked sheet 2"
+    use_sheet_names_in_stored_paths: false
+    columns:
+      uar: uar
+      name_prefix: subcategory
+      url: link
+      status: media number + archive status
+      # folder: destination folder
+      archive: additional information
+      archived_filenames: archived file location(s)
+      downloaded_filenames: original downloaded filename(s)
+      date: archive date
+      duration: duration (hh:mm:ss.mmmmmm)
+      thumbnail: media thumbnail
+      timestamp: upload timestamp utc
+      timestamp_est: upload timestamp est
+      title: upload title
+      title_translated: upload title translated
+      text: text of post
+      text_translated: text of post translated
+      screenshot: post screenshot link
+      hash: hash
+      codec_link: link for codec
+      send_to_trint: trint?
+      trint_link: trint link
+      credit_string: credit
+      # pdq_hash: perceptual hashes
+      # wacz: wacz
+      # replaywebpage: replaywebpage
+
+  instagram_tbot_archiver:
+    api_id: "your api id"
+    api_hash: "your api hash"
+    session_file: "secrets/anon-instabot"
+    timeout: 300
+
+  telethon_archiver:
+    api_id: "your api id"
+    api_hash: "your api hash"
+    session_file: "secrets/anon-telethon"
+    join_channels: false
+    channel_invites: # if you want to archive from private channels
+      - invite: https://t.me/+123456789
+        id: 0000000001
+      - invite: https://t.me/+123456788
+        id: 0000000002
+
+  twitter_api_archiver:
+    netscape_cookies: "secrets/netscape_cookies.txt"
+    # either bearer_token only
+    bearer_token: "your bearer token"
+    # OR all of the below
+    # consumer_key: ""
+    # consumer_secret: ""
+    # access_token: ""
+    # access_secret: ""
+
+  twitter_archiver:
+    netscape_cookies: "secrets/netscape_cookies.txt"
+
+  instagram_archiver:
+    username: "your username"
+    password: "your password"
+    session_file: "secrets/instaloader.session"
+
+  vk_archiver:
+    username: "your username"
+    password: "your password"
+    session_file: "secrets/vk_config.v2.json"
+
+  youtubedl_archiver:
+    netscape_cookies: "secrets/netscape_cookies.txt"
+    facebook_cookie: "your facebook cookie"
+
+  thumbnail_enricher:
+    thumbnails_per_minute: 1
+    max_thumbnails: 1
+
+  screenshot_enricher:
+    width: 1280
+    height: 1280
+
+  wayback_archiver_enricher:
+    timeout: 10
+    key: "wayback key"
+    secret: "wayback secret"
+
+  hash_enricher:
+    algorithm: "SHA3-512" # can also be SHA-256
+
+  wacz_archiver_enricher:
+    profile: secrets/profile.tar.gz
+
+  local_storage:
+    save_to: "path_here"
+    save_absolute: true
+    filename_generator: static
+    path_generator: flat
+
+  s3_storage:
+    bucket: your-bucket-name
+    region: reg1
+    key: S3_KEY
+    secret: S3_SECRET
+    endpoint_url: "https://{region}.digitaloceanspaces.com"
+    cdn_url: "https://{bucket}.{region}.cdn.digitaloceanspaces.com/{key}"
+    # if private:true S3 urls will not be readable online
+    private: false
+    # with 'random' you can generate a random UUID for the URL instead of a predictable path, useful to still have public but unlisted files, alternative is 'default' or not omitted from config
+    key_path: random
+
+  gcs_storage_1:
+    bucket_name: vi_workflow
+    # top_level_folder: vi_workflow_tests
+    service_account: "secrets/service_account.json"
+    scopes: ['https://www.googleapis.com/auth/cloud-platform']
+    cdn_url: "https://storage.cloud.google.com/{bucket_name}/{key}"
+
+  gcs_storage_2:
+    bucket_name: vi_workflow_thumbnails_only
+    # top_level_folder: vi_workflow_tests
+    service_account: "secrets/service_account.json"
+    scopes: ['https://www.googleapis.com/auth/cloud-platform']
+    cdn_url: "https://storage.googleapis.com/{bucket_name}/{key}"
+
+  trint_storage:
+    trint_api_url: https://upload.trint.com/
+    trint_api_key: your_api_key
+    language: en
+    workspace_id: your_workspace_id
+    folder_id: your_folder_id
+
+  gdrive_storage:
+    path_generator: url
+    filename_generator: static
+    # root_folder_id: your_root_folder_id
+    oauth_token: secrets/gd-token.json # needs to be generated with scripts/create_update_gdrive_oauth_token.py
+    service_account: "secrets/service_account.json"
+    dated_subfolders: false
+
+  csv_db:
+    csv_file: "./local_archive/db.csv"
+  
+  gsheet_db:
+    service_account: "secrets/service_account.json"
